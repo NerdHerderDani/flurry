@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --flurry-bg: #040805;
+  --flurry-panel: #071009;
+  --flurry-green: #5bff8a;
+  --flurry-dim: #1e4a2b;
+  --flurry-mid: #2e7a44;
+  --flurry-amber: #ffb84d;
+  --flurry-red: #ff5566;
+  --flurry-cyan: #5be8ff;
+}
+
+body {
+  background: var(--flurry-bg);
+  color: var(--flurry-green);
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+::selection {
+  background: var(--flurry-green);
+  color: var(--flurry-bg);
+}
+input::placeholder {
+  color: var(--flurry-mid);
+}
+
+.crt {
+  animation: flicker 4s infinite;
+}
+.cursor {
+  animation: blink 1.1s step-end infinite;
+}
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 0.985;
+  }
+  50% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.97;
+  }
+}
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt,
+  .cursor {
+    animation: none;
+  }
+}
+
+.scanlines {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+}
+.vignette {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
