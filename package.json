@@ -17,6 +17,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.62.0",
     "jotai": "^2.10.0",
     "react": "^19.0.0",

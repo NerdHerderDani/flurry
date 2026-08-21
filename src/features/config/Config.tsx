@@ -84,7 +84,9 @@ export function Config() {
           }}
         />
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
-          live chain reads land with the pump.fun provider (issue #1) — demo feed until then.
+          pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug
+          history and 1h volume/holders can&apos;t be verified from raw RPC — always shown as
+          unverified. leave blank for the demo feed.
         </p>
       </div>
     </div>

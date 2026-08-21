@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { createDemoProvider } from "../../lib/rpc/demo";
+import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import { detectBundle } from "../../lib/forensics/bundle";
 import { clusterByFunding, linkedWalletCount } from "../../lib/forensics/cluster";
 import { scoreRisk, type RiskTier } from "../../lib/forensics/risk";
@@ -22,20 +22,30 @@ interface Row extends Launch {
   dossier: string | null;
   dossierLoading: boolean;
   dossierError: string | null;
+  forensicsLoading: boolean;
+  forensicsLoaded: boolean;
 }
 
 export function Scanner() {
   const [rows, setRows] = useState<Row[]>([]);
   const [paused, setPaused] = useAtom(feedPausedAtom);
   const apiKey = useAtomValue(apiKeyAtom);
-  const provider = useMemo(() => createDemoProvider(), []);
+  const provider = useChainProvider();
 
   useEffect(() => {
     const unsub = provider.subscribeLaunches((l) => {
       setRows((rs) => {
         if (paused) return rs;
         return [
-          { ...l, open: false, dossier: null, dossierLoading: false, dossierError: null },
+          {
+            ...l,
+            open: false,
+            dossier: null,
+            dossierLoading: false,
+            dossierError: null,
+            forensicsLoading: false,
+            forensicsLoaded: false,
+          },
           ...rs,
         ].slice(0, 40);
       });
@@ -45,6 +55,20 @@ export function Scanner() {
 
   const patch = (mint: string, p: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.mint === mint ? { ...r, ...p } : r)));
+
+  const toggle = (r: Row) => {
+    const opening = !r.open;
+    patch(r.mint, { open: opening });
+    if (opening && !r.forensicsLoaded && !r.forensicsLoading && provider.loadForensics) {
+      patch(r.mint, { forensicsLoading: true });
+      provider
+        .loadForensics(r)
+        .then((update) =>
+          patch(r.mint, { ...update, forensicsLoading: false, forensicsLoaded: true }),
+        )
+        .catch(() => patch(r.mint, { forensicsLoading: false, forensicsLoaded: true }));
+    }
+  };
 
   const analyze = (r: Row) => {
     const bundle = detectBundle(r.deploySlot, r.slotActivity);
@@ -131,7 +155,7 @@ export function Scanner() {
           return (
             <div key={r.mint} style={{ borderBottom: "1px solid var(--flurry-dim)" }}>
               <div
-                onClick={() => patch(r.mint, { open: !r.open })}
+                onClick={() => toggle(r)}
                 className="grid cursor-pointer px-2 py-1 text-sm hover:bg-white/5"
                 style={{ gridTemplateColumns: "70px 90px 1fr 90px 60px 80px" }}
               >
@@ -156,9 +180,9 @@ export function Scanner() {
                   style={{ background: "var(--flurry-panel)" }}
                 >
                   <pre className="whitespace-pre-wrap">
-                    {`deployer      ${short(r.deployer)}   (${r.deployerPriorLaunches} prior launches, ${r.deployerPriorRugs} rugs)
+                    {`deployer      ${short(r.deployer)}   (${r.deployerPriorLaunches} prior launches, ${r.rugHistoryVerified ? `${r.deployerPriorRugs} rugs` : "rug history: unverified"})
 mint          ${short(r.mint)}
-bundle check  ${bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}
+bundle check  ${r.forensicsLoading ? "loading..." : bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}
 first block   ${bundle.deploySlotSupplyPct}% of supply acquired${bundle.deploySlotSupplyPct > 30 ? "  ⚠ concentration" : ""}
 wallet links  ${linked} wallets share funding lineage${clusters[0] ? `\nfunder        ${short(clusters[0].funder)} (${clusters[0].wallets.length}-wallet cluster)` : ""}
 dev holds     ${r.devHoldsPct}% of supply`}

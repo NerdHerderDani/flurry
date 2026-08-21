@@ -82,6 +82,7 @@ function makeLaunch(): Launch {
     devHoldsPct: rand(12),
     deployerPriorLaunches: rand(30),
     deployerPriorRugs: bundled ? rand(6) : rand(2),
+    rugHistoryVerified: true,
     slotActivity: activity,
   });
 }
@@ -99,6 +100,7 @@ function makeGrad(): GraduationEntry {
     mcapUsd: (30 + rand(60)) * 1000,
     vol1hUsd: (5 + rand(120)) * 1000,
     holders: 40 + rand(900),
+    volHoldersVerified: true,
     pinned: false,
   });
 }

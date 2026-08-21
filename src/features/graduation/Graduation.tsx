@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createDemoProvider } from "../../lib/rpc/demo";
+import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import type { GraduationEntry } from "../../lib/schemas";
 
 const BAR = 22;
+const PINNED_REFRESH_MS = 10_000;
 
 export function Graduation() {
-  const provider = useMemo(() => createDemoProvider(), []);
+  const provider = useChainProvider();
   const [query, setQuery] = useState("");
   const [pinned, setPinned] = useState<GraduationEntry[]>([]);
+  const [queueError, setQueueError] = useState<string | null>(null);
 
   const { data = [] } = useQuery({
     queryKey: ["graduation", provider.name],
@@ -16,23 +18,55 @@ export function Graduation() {
     refetchInterval: 5000,
   });
 
+  const pinnedRef = useRef(pinned);
+  useEffect(() => {
+    pinnedRef.current = pinned;
+  }, [pinned]);
+
+  // Brief section E: queued mints get the same real curve-state polling as feed tokens.
+  useEffect(() => {
+    const resolve = provider.resolveQueuedMint;
+    if (!resolve) return;
+    const t = setInterval(() => {
+      for (const row of pinnedRef.current) {
+        void resolve(row.mint)
+          .then((fresh) =>
+            setPinned((rows) => rows.map((r) => (r.mint === fresh.mint ? fresh : r))),
+          )
+          .catch(() => void 0);
+      }
+    }, PINNED_REFRESH_MS);
+    return () => clearInterval(t);
+  }, [provider]);
+
   const queue = () => {
-    const q = query.trim().toUpperCase();
+    const q = query.trim();
     if (!q) return;
-    setPinned((p) => [
-      {
-        mint: `pinned-${q}`,
-        ticker: q.slice(0, 10),
-        program: "PUMP_FUN",
-        platformLabel: "PUMP.FUN",
-        curveProgressPct: 0,
-        mcapUsd: 0,
-        vol1hUsd: 0,
-        holders: 0,
-        pinned: true,
-      },
-      ...p,
-    ]);
+    setQueueError(null);
+    if (provider.resolveQueuedMint) {
+      provider
+        .resolveQueuedMint(q)
+        .then((entry) => setPinned((p) => [entry, ...p]))
+        .catch((e: unknown) =>
+          setQueueError(e instanceof Error ? e.message : "failed to resolve mint"),
+        );
+    } else {
+      setPinned((p) => [
+        {
+          mint: `pinned-${q.toUpperCase()}`,
+          ticker: q.slice(0, 10).toUpperCase(),
+          program: "PUMP_FUN",
+          platformLabel: "PUMP.FUN",
+          curveProgressPct: 0,
+          mcapUsd: 0,
+          vol1hUsd: 0,
+          holders: 0,
+          volHoldersVerified: true,
+          pinned: true,
+        },
+        ...p,
+      ]);
+    }
     setQuery("");
   };
 
@@ -47,7 +81,7 @@ export function Graduation() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && queue()}
-          placeholder="queue a ticker or mint to watch..."
+          placeholder="queue a mint address to watch..."
           className="flex-1 px-2 py-1 text-sm outline-none"
           style={{
             background: "var(--flurry-panel)",
@@ -68,6 +102,11 @@ export function Graduation() {
           + WATCH
         </button>
       </div>
+      {queueError && (
+        <div className="mb-2 text-xs" style={{ color: "var(--flurry-red)" }}>
+          {queueError}
+        </div>
+      )}
       <div className="mb-2 text-xs" style={{ color: "var(--flurry-mid)" }}>
         bonding curve progress // GRADUATED ≥ 100% · CLOSE ≥ 90% · pinned entries stay on top
       </div>
@@ -114,7 +153,9 @@ export function Graduation() {
                 {"░".repeat(BAR - filled)} {g.curveProgressPct.toFixed(1)}%
               </span>
               <span>${Math.round(g.mcapUsd / 1000)}k</span>
-              <span>${Math.round(g.vol1hUsd / 1000)}k</span>
+              <span style={{ color: g.volHoldersVerified ? undefined : "var(--flurry-mid)" }}>
+                {g.volHoldersVerified ? `$${Math.round(g.vol1hUsd / 1000)}k` : "unverified"}
+              </span>
               <span style={{ color }}>{done ? "GRADUATED" : close ? "CLOSE" : "CURVE"}</span>
             </div>
           );

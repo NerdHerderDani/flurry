@@ -6,7 +6,13 @@ import { Scanner } from "./features/scanner/Scanner";
 import { Graduation } from "./features/graduation/Graduation";
 import { Config } from "./features/config/Config";
 import { Support } from "./features/support/Support";
-import { apiKeyAtom, modeAtom, rpcUrlAtom } from "./state/atoms";
+import { apiKeyAtom, feedStatusAtom, modeAtom, rpcThrottledAtom, rpcUrlAtom } from "./state/atoms";
+
+const feedColor: Record<string, string> = {
+  LIVE: "var(--flurry-green)",
+  RECONNECTING: "var(--flurry-amber)",
+  DEMO: "var(--flurry-amber)",
+};
 
 export function App() {
   const [booted, setBooted] = useState(false);
@@ -14,6 +20,8 @@ export function App() {
   const apiKey = useAtomValue(apiKeyAtom);
   const rpcUrl = useAtomValue(rpcUrlAtom);
   const mode = useAtomValue(modeAtom);
+  const feedStatus = useAtomValue(feedStatusAtom);
+  const throttled = useAtomValue(rpcThrottledAtom);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -32,6 +40,8 @@ export function App() {
             TERMINAL
           </h1>
           <div className="text-xs" style={{ color: "var(--flurry-mid)" }}>
+            FEED: <span style={{ color: feedColor[feedStatus] }}>{feedStatus}</span>{" "}
+            {throttled && <span style={{ color: "var(--flurry-red)" }}>RPC: THROTTLED </span>}
             RPC:{" "}
             <span style={{ color: rpcUrl ? "var(--flurry-green)" : "var(--flurry-amber)" }}>
               {rpcUrl ? "CUSTOM" : "DEMO FEED"}

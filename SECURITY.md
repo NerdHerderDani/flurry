@@ -16,7 +16,12 @@ Flurry is a fully static, client-side application. There is no backend.
 
 user browser ── RPC reads ──> user-supplied Solana RPC
 user browser ── dossier calls ──> api.anthropic.com (user's key)
+user browser ── SOL/USD price ──> lite-api.jup.ag (public, keyless, no data sent but the read itself)
 user browser ── nothing ──> us. No telemetry, no analytics, no server.
+
+The Jupiter price read is the pump.fun provider's only non-RPC network call: raw
+Solana RPC has no price oracle, and market-cap USD figures need one. It's a plain
+GET with no identifying data in the request, same trust model as an RPC endpoint.
 
 ## Reporting
 
