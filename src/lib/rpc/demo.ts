@@ -1,5 +1,5 @@
 import type { ChainProvider } from "./provider";
-import { Launch, GraduationEntry, type SlotActivity, Platform } from "../schemas";
+import { Launch, GraduationEntry, type SlotActivity, type LaunchProgram } from "../schemas";
 
 /** Deterministic-enough demo feed so the UI is fully exercisable with zero keys. */
 const SYLL = [
@@ -24,10 +24,27 @@ const SYLL = [
   "ghost",
   "laser",
 ] as const;
-const PLATFORMS = Platform.options;
+
+/** Weighted to roughly match the real venue distribution (pump.fun dominant). */
+const VENUES: { program: LaunchProgram; label: string; weight: number }[] = [
+  { program: "PUMP_FUN", label: "PUMP.FUN", weight: 70 },
+  { program: "LAUNCHLAB", label: "LETSBONK", weight: 18 },
+  { program: "LAUNCHLAB", label: "LAUNCHLAB", weight: 4 },
+  { program: "METEORA_DBC", label: "BELIEVE", weight: 5 },
+  { program: "METEORA_DBC", label: "BAGS", weight: 3 },
+];
+const TOTAL_WEIGHT = VENUES.reduce((s, v) => s + v.weight, 0);
 
 const rand = (n: number) => Math.floor(Math.random() * n);
 const pick = <T>(a: readonly T[]): T => a[rand(a.length)] as T;
+const pickVenue = () => {
+  let r = Math.random() * TOTAL_WEIGHT;
+  for (const v of VENUES) {
+    r -= v.weight;
+    if (r <= 0) return v;
+  }
+  return VENUES[0] as (typeof VENUES)[number];
+};
 const fakeAddr = () => {
   const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789";
   return Array.from({ length: 44 }, () => c[rand(c.length)]).join("");
@@ -38,6 +55,7 @@ let slot = 300_000_000;
 function makeLaunch(): Launch {
   const a = pick(SYLL),
     b = pick(SYLL);
+  const venue = pickVenue();
   const bundled = Math.random() < 0.42;
   const deploySlot = ++slot;
   const funder = fakeAddr();
@@ -55,7 +73,8 @@ function makeLaunch(): Launch {
     mint: fakeAddr(),
     ticker: (a + b).toUpperCase().slice(0, 8),
     name: `${a} ${b}`,
-    platform: pick(PLATFORMS),
+    program: venue.program,
+    platformLabel: venue.label,
     deployer: fakeAddr(),
     deploySlot,
     launchedAt: Date.now(),
@@ -70,10 +89,12 @@ function makeLaunch(): Launch {
 function makeGrad(): GraduationEntry {
   const a = pick(SYLL),
     b = pick(SYLL);
+  const venue = pickVenue();
   return GraduationEntry.parse({
     mint: fakeAddr(),
     ticker: (a + b).toUpperCase().slice(0, 8),
-    platform: pick(["PUMP.FUN", "BONK.FUN", "MOONSHOT"] as const),
+    program: venue.program,
+    platformLabel: venue.label,
     curveProgressPct: Math.min(55 + rand(46), 100),
     mcapUsd: (30 + rand(60)) * 1000,
     vol1hUsd: (5 + rand(120)) * 1000,

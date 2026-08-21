@@ -40,6 +40,22 @@ npm run dev
 | Desktop bridge (localhost agent, keyless)      | 🔜 issue #2    |
 | Additional platform providers                  | 🔜             |
 
+## Coverage plan
+
+Coverage is **program-oriented, not brand-oriented**: most launchpads are skins on
+shared infrastructure, so one decoder per on-chain program covers every skin on it.
+
+| Phase    | Program           | Covers                               | Rationale                                                                     |
+| -------- | ----------------- | ------------------------------------ | ----------------------------------------------------------------------------- |
+| v0       | pump.fun          | pump.fun                             | Dominant venue (~98% of launchpad revenue, Aug 2026); majority of graduations |
+| v0.2     | Raydium LaunchLab | LetsBonk.fun + 10+ third-party skins | Best coverage-per-integration; skin identified via platform config account    |
+| v0.3     | Meteora DBC       | Believe, Bags, others                | Open-source curve implementation; creator-launchpad segment                   |
+| Deferred | Moonshot          | Moonshot                             | Own program, ~1% share, Jupiter mobile audience                               |
+| Skip     | Heaven, Boop      | —                                    | Unproven / marginal; revisit if either survives two quarters                  |
+
+Trading terminals (Axiom, FOMO, Photon, GMGN) are **not** coverage targets — they are
+where launches surface, not where they happen. Flurry competes in that category.
+
 ## Support
 
 Free forever. If Flurry saved you from a bundled launch, the tip jar is in the

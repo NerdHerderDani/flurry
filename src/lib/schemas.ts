@@ -1,7 +1,12 @@
 import { z } from "zod";
 
-export const Platform = z.enum(["PUMP.FUN", "AXIOM", "FOMO", "MOONSHOT", "BONK.FUN"]);
-export type Platform = z.infer<typeof Platform>;
+/**
+ * Coverage is program-oriented, not brand-oriented: most "launchpads" are skins
+ * on shared infrastructure (LetsBonk et al. on Raydium LaunchLab; Believe/Bags
+ * on Meteora DBC). One decoder per program covers every skin on it.
+ */
+export const LaunchProgram = z.enum(["PUMP_FUN", "LAUNCHLAB", "METEORA_DBC"]);
+export type LaunchProgram = z.infer<typeof LaunchProgram>;
 
 /** A wallet's activity in/around the deploy slot of a token. */
 export const SlotActivity = z.object({
@@ -16,7 +21,9 @@ export const Launch = z.object({
   mint: z.string(),
   ticker: z.string(),
   name: z.string(),
-  platform: Platform,
+  program: LaunchProgram,
+  /** Display name of the launchpad skin (e.g. "PUMP.FUN", "LETSBONK", "BELIEVE"). */
+  platformLabel: z.string(),
   deployer: z.string(),
   deploySlot: z.number().int().nonnegative(),
   launchedAt: z.number(), // unix ms
@@ -31,7 +38,8 @@ export type Launch = z.infer<typeof Launch>;
 export const GraduationEntry = z.object({
   mint: z.string(),
   ticker: z.string(),
-  platform: Platform,
+  program: LaunchProgram,
+  platformLabel: z.string(),
   curveProgressPct: z.number().min(0).max(100),
   mcapUsd: z.number().nonnegative(),
   vol1hUsd: z.number().nonnegative(),
@@ -43,7 +51,7 @@ export type GraduationEntry = z.infer<typeof GraduationEntry>;
 /** Structured evidence handed to the AI dossier. Nothing else crosses that boundary. */
 export const DossierEvidence = z.object({
   ticker: z.string(),
-  platform: Platform,
+  platformLabel: z.string(),
   deployer: z.string(),
   bundled: z.boolean(),
   bundleWallets: z.number().int().nonnegative(),

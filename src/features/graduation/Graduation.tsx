@@ -23,7 +23,8 @@ export function Graduation() {
       {
         mint: `pinned-${q}`,
         ticker: q.slice(0, 10),
-        platform: "PUMP.FUN",
+        program: "PUMP_FUN",
+        platformLabel: "PUMP.FUN",
         curveProgressPct: 0,
         mcapUsd: 0,
         vol1hUsd: 0,
@@ -107,7 +108,7 @@ export function Graduation() {
               <span>
                 {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}${g.ticker}
               </span>
-              <span style={{ color: "var(--flurry-cyan)" }}>{g.platform}</span>
+              <span style={{ color: "var(--flurry-cyan)" }}>{g.platformLabel}</span>
               <span style={{ color }}>
                 {"█".repeat(filled)}
                 {"░".repeat(BAR - filled)} {g.curveProgressPct.toFixed(1)}%

@@ -68,7 +68,7 @@ export function Scanner() {
     const { bundle, linked } = analyze(r);
     const evidence: DossierEvidence = {
       ticker: r.ticker,
-      platform: r.platform,
+      platformLabel: r.platformLabel,
       deployer: r.deployer,
       bundled: bundle.bundled,
       bundleWallets: bundle.deploySlotWallets,
@@ -138,7 +138,7 @@ export function Scanner() {
                 <span style={{ color: "var(--flurry-mid)" }}>
                   {ageSec < 60 ? `${ageSec}s` : `${Math.floor(ageSec / 60)}m`}
                 </span>
-                <span style={{ color: "var(--flurry-cyan)" }}>{r.platform}</span>
+                <span style={{ color: "var(--flurry-cyan)" }}>{r.platformLabel}</span>
                 <span>
                   ${r.ticker} <span style={{ color: "var(--flurry-mid)" }}>· {r.name}</span>
                 </span>
