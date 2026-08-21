@@ -1,10 +1,14 @@
 import { useAtom } from "jotai";
 import { apiKeyAtom, modeAtom, rpcUrlAtom, type ConnectionMode } from "../../state/atoms";
 
+const linkStyle = { color: "var(--flurry-cyan)", textDecoration: "underline" };
+
 export function Config() {
   const [mode, setMode] = useAtom(modeAtom);
   const [apiKey, setApiKey] = useAtom(apiKeyAtom);
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
+
+  const rpcLooksLikeBareKey = rpcUrl.trim().length > 0 && !rpcUrl.trim().startsWith("https://");
 
   return (
     <div className="max-w-xl">
@@ -66,6 +70,18 @@ export function Config() {
           <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
             sent directly from your browser to Anthropic. never stored, never proxied.
           </p>
+          <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+            starts with <span style={{ color: "var(--flurry-green)" }}>sk-ant-</span>. create one at{" "}
+            <a
+              href="https://console.anthropic.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={linkStyle}
+            >
+              console.anthropic.com
+            </a>{" "}
+            — pay-per-call billing, no subscription required.
+          </p>
         </div>
       )}
       <div className="mb-4">
@@ -83,6 +99,28 @@ export function Config() {
             color: "var(--flurry-green)",
           }}
         />
+        {rpcLooksLikeBareKey && (
+          <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
+            that looks like a bare API key — paste the full RPC URL from your provider&apos;s
+            dashboard.
+          </p>
+        )}
+        <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          expected shape:{" "}
+          <span style={{ color: "var(--flurry-green)" }}>
+            https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+          </span>{" "}
+          (or any Solana RPC provider&apos;s full URL). no key yet? get a free one at{" "}
+          <a
+            href="https://www.helius.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={linkStyle}
+          >
+            helius.dev
+          </a>
+          .
+        </p>
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
           pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug
           history and 1h volume/holders can&apos;t be verified from raw RPC — always shown as
