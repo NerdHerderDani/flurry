@@ -1,14 +1,64 @@
+import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
-import { apiKeyAtom, modeAtom, rpcUrlAtom, type ConnectionMode } from "../../state/atoms";
+import {
+  apiKeyAtom,
+  bridgePortAtom,
+  modeAtom,
+  rpcUrlAtom,
+  type ConnectionMode,
+} from "../../state/atoms";
+import { checkBridge, type HealthResult } from "../../lib/ai/bridge";
 
 const linkStyle = { color: "var(--flurry-cyan)", textDecoration: "underline" };
+const BRIDGE_RAW_URL =
+  "https://raw.githubusercontent.com/NerdHerderDani/flurry/main/bridge/flurry-bridge.mjs";
+const BRIDGE_SETUP_COMMANDS = `curl -O ${BRIDGE_RAW_URL}\nnode flurry-bridge.mjs`;
+const BRIDGE_POLL_MS = 5000;
 
 export function Config() {
   const [mode, setMode] = useAtom(modeAtom);
   const [apiKey, setApiKey] = useAtom(apiKeyAtom);
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
+  const [bridgePort, setBridgePort] = useAtom(bridgePortAtom);
+  const [bridgeHealth, setBridgeHealth] = useState<HealthResult | null>(null);
+  const [bridgeReachable, setBridgeReachable] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const rpcLooksLikeBareKey = rpcUrl.trim().length > 0 && !rpcUrl.trim().startsWith("https://");
+
+  // Live status, polled every 5s while this tab is visible (brief: DESKTOP BRIDGE mode).
+  useEffect(() => {
+    if (mode !== "desktop") return;
+    let cancelled = false;
+    const poll = () => {
+      if (document.visibilityState !== "visible") return;
+      checkBridge(bridgePort)
+        .then((health) => {
+          if (cancelled) return;
+          setBridgeHealth(health);
+          setBridgeReachable(true);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setBridgeHealth(null);
+          setBridgeReachable(false);
+        });
+    };
+    poll();
+    const timer = setInterval(poll, BRIDGE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [mode, bridgePort]);
+
+  const bridgeConnected = bridgeReachable && bridgeHealth?.ok === true;
+  const copySetupCommands = () => {
+    void navigator.clipboard.writeText(BRIDGE_SETUP_COMMANDS).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
   return (
     <div className="max-w-xl">
@@ -43,10 +93,75 @@ export function Config() {
           ))}
         </div>
         {mode === "desktop" && (
-          <p className="mt-2 text-xs" style={{ color: "var(--flurry-amber)" }}>
-            desktop bridge: point the terminal at a local agent at localhost so no key ever enters
-            the page. tracked in issue #2.
-          </p>
+          <div className="mt-2">
+            <p className="text-xs" style={{ color: "var(--flurry-mid)" }}>
+              dossier calls route to a local agent on your machine — no Anthropic key ever enters
+              this page. the bridge prefers the{" "}
+              <span style={{ color: "var(--flurry-green)" }}>claude</span> CLI (Pro/Max
+              subscription, zero API billing) and falls back to{" "}
+              <span style={{ color: "var(--flurry-green)" }}>ANTHROPIC_API_KEY</span> in its own
+              shell env if that's not installed.
+            </p>
+            <p className="mt-1 text-xs">
+              BRIDGE:{" "}
+              <span
+                style={{ color: bridgeConnected ? "var(--flurry-green)" : "var(--flurry-amber)" }}
+              >
+                {bridgeConnected
+                  ? `CONNECTED (${bridgeHealth?.backend})`
+                  : bridgeReachable
+                    ? "NO BACKEND"
+                    : "NOT FOUND"}
+              </span>
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <label className="text-xs" style={{ color: "var(--flurry-mid)" }}>
+                PORT
+              </label>
+              <input
+                type="number"
+                value={bridgePort}
+                onChange={(e) => setBridgePort(Number(e.target.value) || 4114)}
+                className="w-24 px-2 py-1 text-sm outline-none"
+                style={{
+                  background: "var(--flurry-panel)",
+                  border: "1px solid var(--flurry-dim)",
+                  color: "var(--flurry-green)",
+                }}
+              />
+            </div>
+            {!bridgeConnected && (
+              <div className="mt-2 p-2" style={{ border: "1px dashed var(--flurry-dim)" }}>
+                <p className="mb-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
+                  {bridgeReachable
+                    ? "bridge is running but has no backend — install the claude CLI or set ANTHROPIC_API_KEY in its shell, then restart it."
+                    : "not running. two commands, in a terminal on this machine:"}
+                </p>
+                <pre
+                  className="whitespace-pre-wrap p-2 text-xs"
+                  style={{ color: "var(--flurry-green)", background: "var(--flurry-bg)" }}
+                >
+                  {BRIDGE_SETUP_COMMANDS}
+                </pre>
+                <button
+                  onClick={copySetupCommands}
+                  className="mt-1 px-2 py-1 text-xs"
+                  style={{
+                    color: "var(--flurry-green)",
+                    background: "transparent",
+                    border: "1px solid var(--flurry-dim)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {copied ? "COPIED" : "COPY"}
+                </button>
+              </div>
+            )}
+            <p className="mt-2 text-xs" style={{ color: "var(--flurry-mid)" }}>
+              works in Chrome and Firefox. Safari blocks the localhost connection from an https page
+              outright — use Chrome or Firefox for bridge mode.
+            </p>
+          </div>
         )}
       </div>
       {mode === "byok" && (

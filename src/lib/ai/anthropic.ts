@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { DossierEvidence } from "../schemas";
+import { buildDossierPrompt } from "./prompt";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
@@ -7,14 +8,6 @@ const MODEL = "claude-sonnet-4-6";
 const MessagesResponse = z.object({
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })),
 });
-
-const PROMPT_HEADER =
-  "You are a Solana token-launch forensics analyst writing terminal output. " +
-  "Given this on-chain evidence, write a dossier verdict in EXACTLY this format, plain text, max 90 words total:\n" +
-  "VERDICT: <AVOID | CAUTION | CLEAR>\n" +
-  "CONFIDENCE: <LOW | MED | HIGH>\n" +
-  "READ: <2-3 blunt sentences interpreting the evidence: bundling, wallet clustering, deployer history. No hedging filler. No markdown.>\n\n" +
-  "Evidence JSON:\n";
 
 /**
  * BYOK dossier call. The key lives in memory only and goes straight to
@@ -33,7 +26,7 @@ export async function runDossier(evidence: DossierEvidence, apiKey: string): Pro
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 1000,
-      messages: [{ role: "user", content: PROMPT_HEADER + JSON.stringify(evidence) }],
+      messages: [{ role: "user", content: buildDossierPrompt(evidence) }],
     }),
   });
   if (!res.ok) {
