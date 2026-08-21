@@ -22,8 +22,11 @@ export interface LaunchFeedOptions {
   pollBatchSize?: number;
 }
 
+/** Parses rather than regex-replaces so a stray leading space or odd casing can't leave the scheme un-swapped. */
 function wsUrlFromHttp(rpcUrl: string): string {
-  return rpcUrl.replace(/^http/, "ws");
+  const url = new URL(rpcUrl);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
 }
 
 /**
@@ -63,7 +66,8 @@ export class PumpFunLaunchFeed {
     let ws: WebSocket;
     try {
       ws = new WebSocket(wsUrlFromHttp(this.rpcUrl));
-    } catch {
+    } catch (e) {
+      console.warn("[pumpfun feed] could not open WebSocket:", e);
       this.onWsFailure();
       return;
     }
@@ -86,8 +90,11 @@ export class PumpFunLaunchFeed {
     ws.onerror = () => {
       /* onclose fires right after in browsers/undici; handled there */
     };
-    ws.onclose = () => {
+    ws.onclose = (ev: CloseEvent) => {
       if (this.stopped) return;
+      console.warn(
+        `[pumpfun feed] WebSocket closed (code=${ev.code}, reason=${ev.reason || "none"})`,
+      );
       this.onWsFailure();
     };
   }
@@ -125,11 +132,17 @@ export class PumpFunLaunchFeed {
     this.wsFailures += 1;
     const maxFailures = this.opts.maxWsFailures ?? 4;
     if (this.wsFailures >= maxFailures) {
+      console.warn(
+        `[pumpfun feed] giving up on WebSocket after ${this.wsFailures} failures, polling instead`,
+      );
       this.startPolling();
       return;
     }
     this.opts.onStatus("RECONNECTING");
     const delay = exponentialBackoffMs(this.wsFailures - 1);
+    console.warn(
+      `[pumpfun feed] reconnecting in ${delay}ms (attempt ${this.wsFailures}/${maxFailures})`,
+    );
     this.reconnectTimer = setTimeout(() => this.connectWs(), delay);
   }
 
@@ -171,7 +184,8 @@ export class PumpFunLaunchFeed {
             });
         }
         this.opts.onStatus("LIVE");
-      } catch {
+      } catch (e) {
+        console.warn("[pumpfun feed] poll tick failed:", e);
         this.opts.onStatus("RECONNECTING");
       } finally {
         if (!this.stopped) this.pollTimer = setTimeout(tick, intervalMs);
