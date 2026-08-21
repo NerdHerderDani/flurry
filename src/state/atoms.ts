@@ -11,6 +11,7 @@ export const modeAtom = atom<ConnectionMode>("byok");
 export const apiKeyAtom = atom<string>("");
 export const rpcUrlAtom = atom<string>("");
 export const feedPausedAtom = atom<boolean>(false);
+export const bridgePortAtom = atom<number>(4114);
 
 export type FeedStatus = "LIVE" | "RECONNECTING" | "DEMO";
 export const feedStatusAtom = atom<FeedStatus>("DEMO");

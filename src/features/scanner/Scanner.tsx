@@ -5,7 +5,8 @@ import { detectBundle } from "../../lib/forensics/bundle";
 import { clusterByFunding, linkedWalletCount } from "../../lib/forensics/cluster";
 import { scoreRisk, type RiskTier } from "../../lib/forensics/risk";
 import { runDossier } from "../../lib/ai/anthropic";
-import { apiKeyAtom, feedPausedAtom } from "../../state/atoms";
+import { BridgeNoBackendError, runDossierViaBridge } from "../../lib/ai/bridge";
+import { apiKeyAtom, bridgePortAtom, feedPausedAtom, modeAtom } from "../../state/atoms";
 import type { DossierEvidence, Launch } from "../../lib/schemas";
 
 const riskColor: Record<RiskTier, string> = {
@@ -30,6 +31,8 @@ export function Scanner() {
   const [rows, setRows] = useState<Row[]>([]);
   const [paused, setPaused] = useAtom(feedPausedAtom);
   const apiKey = useAtomValue(apiKeyAtom);
+  const mode = useAtomValue(modeAtom);
+  const bridgePort = useAtomValue(bridgePortAtom);
   const provider = useChainProvider();
 
   useEffect(() => {
@@ -85,7 +88,7 @@ export function Scanner() {
   };
 
   const onDossier = async (r: Row) => {
-    if (!apiKey) {
+    if (mode === "byok" && !apiKey) {
       patch(r.mint, { dossierError: "Set an Anthropic API key in [F3] CONFIG first." });
       return;
     }
@@ -104,13 +107,21 @@ export function Scanner() {
     };
     patch(r.mint, { dossierLoading: true, dossierError: null });
     try {
-      const text = await runDossier(evidence, apiKey);
+      const text =
+        mode === "byok"
+          ? await runDossier(evidence, apiKey)
+          : await runDossierViaBridge(evidence, bridgePort);
       patch(r.mint, { dossier: text, dossierLoading: false });
     } catch (e) {
-      patch(r.mint, {
-        dossierLoading: false,
-        dossierError: e instanceof Error ? e.message : "dossier failed",
-      });
+      let message: string;
+      if (e instanceof BridgeNoBackendError) {
+        message = `bridge has no backend configured: ${e.message}`;
+      } else if (mode === "desktop" && e instanceof TypeError) {
+        message = "bridge not running — see the setup commands in [F3] CONFIG.";
+      } else {
+        message = e instanceof Error ? e.message : "dossier failed";
+      }
+      patch(r.mint, { dossierLoading: false, dossierError: message });
     }
   };
 
