@@ -31,6 +31,8 @@ export const Launch = z.object({
   devHoldsPct: z.number().min(0).max(100),
   deployerPriorLaunches: z.number().int().nonnegative(),
   deployerPriorRugs: z.number().int().nonnegative(),
+  /** False on any provider that cannot verify prior-rug history client-side (see DECODING.md). */
+  rugHistoryVerified: z.boolean(),
   slotActivity: z.array(SlotActivity),
 });
 export type Launch = z.infer<typeof Launch>;
@@ -44,6 +46,8 @@ export const GraduationEntry = z.object({
   mcapUsd: z.number().nonnegative(),
   vol1hUsd: z.number().nonnegative(),
   holders: z.number().int().nonnegative(),
+  /** False on any provider that cannot verify vol1hUsd/holders client-side (see DECODING.md). */
+  volHoldersVerified: z.boolean(),
   pinned: z.boolean().default(false),
 });
 export type GraduationEntry = z.infer<typeof GraduationEntry>;

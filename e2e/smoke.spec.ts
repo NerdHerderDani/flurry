@@ -8,7 +8,7 @@ test("boots to scanner and tabs work", async ({ page }) => {
     timeout: 10_000,
   });
   await page.getByRole("button", { name: "[F2] GRADUATION" }).click();
-  await expect(page.getByPlaceholder(/queue a ticker/)).toBeVisible();
+  await expect(page.getByPlaceholder(/queue a mint/)).toBeVisible();
   await page.getByRole("button", { name: "[F3] CONFIG" }).click();
   await expect(page.getByPlaceholder("sk-ant-...")).toBeVisible();
 });
