@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-// Replace before launch. Placeholder is intentionally invalid.
-export const DONATION_ADDRESS = "REPLACE_WITH_REAL_SOL_ADDRESS_BEFORE_LAUNCH";
+// Donation wallet — operator-provided 2026-08-20.
+export const DONATION_ADDRESS = "4KRr3d6hm9UJHnZBmhPfvZtUd3cETRScCTvsagtq6CbE";
 
 export function Support() {
   const [copied, setCopied] = useState(false);
