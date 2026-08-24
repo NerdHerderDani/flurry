@@ -35,7 +35,11 @@ export async function countDeployerPriorLaunches(
     const latestBlock = parseInt(latest, 16);
     const fromBlock = Math.max(0, latestBlock - blockWindow);
     const logs = await transport.call<RpcLog[]>("eth_getLogs", [
-      { address: UERC20_FACTORY_ADDRESS, fromBlock: "0x" + fromBlock.toString(16), toBlock: latest },
+      {
+        address: UERC20_FACTORY_ADDRESS,
+        fromBlock: "0x" + fromBlock.toString(16),
+        toBlock: latest,
+      },
     ]);
     const recent = logs.slice(-inspectLimit);
     let priorLaunches = 0;

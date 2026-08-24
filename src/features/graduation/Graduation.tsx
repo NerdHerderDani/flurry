@@ -146,7 +146,12 @@ export function Graduation() {
               }}
             >
               <span
-                style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                style={{
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
               >
                 {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}
                 <span style={{ color: "var(--flurry-mid)" }}>

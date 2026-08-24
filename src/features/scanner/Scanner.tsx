@@ -188,7 +188,14 @@ export function Scanner() {
                   </span>
                   {r.platformLabel}
                 </span>
-                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span
+                  style={{
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   ${r.ticker} <span style={{ color: "var(--flurry-mid)" }}>· {r.name}</span>
                 </span>
                 <span>${Math.round(r.mcapUsd / 1000)}k</span>
