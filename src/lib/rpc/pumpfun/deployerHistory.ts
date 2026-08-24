@@ -1,5 +1,5 @@
 import { decodeCreateEventFromLogs } from "./decode";
-import type { RpcCaller } from "./transport";
+import type { RpcCaller } from "../transport";
 import type { RpcSignatureInfo, RpcTransaction } from "./types";
 
 export interface DeployerHistoryResult {

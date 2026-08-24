@@ -1,6 +1,6 @@
 import { PUMP_FUN_PROGRAM_ID } from "./idl";
-import { exponentialBackoffMs } from "./rateLimiter";
-import type { RpcCaller } from "./transport";
+import { exponentialBackoffMs } from "../rateLimiter";
+import type { RpcCaller } from "../transport";
 import type { RpcSignatureInfo, RpcTransaction } from "./types";
 
 export interface LogsNotification {

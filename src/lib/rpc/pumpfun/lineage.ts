@@ -1,4 +1,4 @@
-import type { RpcCaller } from "./transport";
+import type { RpcCaller } from "../transport";
 import type { RpcSignatureInfo, RpcTransaction } from "./types";
 
 /**

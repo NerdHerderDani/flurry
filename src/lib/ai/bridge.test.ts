@@ -3,6 +3,7 @@ import { BridgeNoBackendError, checkBridge, runDossierViaBridge } from "./bridge
 import type { DossierEvidence } from "../schemas";
 
 const EVIDENCE: DossierEvidence = {
+  chain: "solana",
   ticker: "TROLBULL",
   platformLabel: "PUMP.FUN",
   deployer: "26oAvbq3jBrg8F7uDw35LMz7URE4W3jbCn3VbuBspynE",

@@ -58,7 +58,9 @@ export function buildDossierPrompt(evidence) {
 // ---------------------------------------------------------------------------
 const STRING_FIELD_MAX_LEN = { ticker: 32, platformLabel: 64, deployer: 64 };
 const INT_FIELD_MAX = 1_000_000;
+const VALID_CHAINS = ["solana", "robinhood"];
 const EVIDENCE_FIELDS = [
+  "chain",
   "ticker",
   "platformLabel",
   "deployer",
@@ -82,6 +84,10 @@ export function validateDossierEvidence(body) {
   const unexpected = Object.keys(body).filter((k) => !EVIDENCE_FIELDS.includes(k));
   if (unexpected.length > 0) {
     return { ok: false, error: `unexpected field(s): ${unexpected.join(", ")}` };
+  }
+
+  if (!VALID_CHAINS.includes(body.chain)) {
+    return { ok: false, error: `chain must be one of: ${VALID_CHAINS.join(", ")}` };
   }
 
   for (const key of ["ticker", "platformLabel", "deployer"]) {
@@ -118,6 +124,7 @@ export function validateDossierEvidence(body) {
   return {
     ok: true,
     evidence: {
+      chain: body.chain,
       ticker: body.ticker,
       platformLabel: body.platformLabel,
       deployer: body.deployer,

@@ -1,16 +1,20 @@
 # FLURRY 慌 TERMINAL
 
-Retro terminal for Solana token launch forensics. Watches launches across platforms
-(pump.fun, Axiom, FOMO, and friends), flags **bundled deploys**, maps **linked wallet
-clusters**, surfaces **deployer history**, and tracks **bonding curve graduation** —
-with optional AI dossier verdicts powered by your own Anthropic key.
+Retro terminal for token launch forensics — Solana and Robinhood Chain. Watches
+launches across platforms, flags **bundled deploys**, maps **linked wallet clusters**,
+surfaces **deployer history**, and tracks **bonding curve graduation** (or, on
+direct-pool launchpads, listing) — with optional AI dossier verdicts powered by your
+own Anthropic key.
 
 **Free forever. BYOK. Zero custody. No backend, no telemetry, no token.**
 
 ## How it works
 
 - **Fully static.** The entire app is client-side. Deploys to GitHub Pages.
-- **BYOK.** You supply your own Anthropic API key and Solana RPC endpoint. Both live in
+- **Two chains, one seam.** Solana (pump.fun) and Robinhood Chain (pools.trade) both
+  implement the same `ChainProvider` interface — pick a chain in `[F3] CONFIG`, the UI
+  doesn't otherwise change.
+- **BYOK.** You supply your own Anthropic API key and chain RPC endpoint. Both live in
   memory for the session only — see [SECURITY.md](SECURITY.md).
 - **Forensics engine.** Pure, unit-tested heuristics:
   - _Bundle detection_ — N distinct wallets acquiring supply in the exact deploy slot
@@ -38,6 +42,7 @@ npm run dev
 | AI dossiers (BYOK, direct browser → Anthropic) | ✅             |
 | Demo chain feed                                | ✅             |
 | Live pump.fun provider (RPC)                   | ✅             |
+| Live Robinhood Chain provider (pools.trade)    | ✅             |
 | Desktop bridge (localhost agent, keyless)      | ✅             |
 | Additional platform providers                  | 🔜             |
 
@@ -92,6 +97,33 @@ shared infrastructure, so one decoder per on-chain program covers every skin on 
 
 Trading terminals (Axiom, FOMO, Photon, GMGN) are **not** coverage targets — they are
 where launches surface, not where they happen. Flurry competes in that category.
+
+## Robinhood Chain coverage
+
+Robinhood Chain (Arbitrum-stack L2, chain ID 4663, mainnet since 2026-07-01) launched
+into an unsettled launchpad landscape — Noxa (the early dominant venue) paused new-token
+creation in July, and several newer entrants (hood.fun, StonkBrokers, Robinlaunch,
+RobinPad, PONS) exist with varying degrees of real activity. Same program-oriented
+honesty as Solana: the pick is decided by verified on-chain volume, not by branding or
+press coverage, and is documented with the actual survey numbers in
+[`src/lib/rpc/evm/DECODING.md`](src/lib/rpc/evm/DECODING.md).
+
+| Launchpad                           | Verified recent activity (2026-08-24)                                                      | Status                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| **pools.trade** (Uniswap Labs)      | ~600 real `TokenCreated` events/day, live and climbing                                     | ✅ Covered                                           |
+| Noxa                                | 646 logs/7d, but paused new-token creation in July                                         | Excluded — residual trading only, not launch volume  |
+| PONS                                | **Zero** on-chain activity in the last 7 days, chain-wide, for its documented event schema | Dead — current press coverage about it is stale      |
+| StonkBrokers, RobinPad, RobinLaunch | Single-digit-to-low-double-digit lifetime transactions                                     | Not covered — negligible volume                      |
+| hood.fun                            | No confidently-identified active contract found                                            | Not covered — couldn't confirm it's a real contender |
+
+pools.trade is a **direct-pool launchpad** — tokens go straight into a live Uniswap v4
+pool at creation, with no bonding curve. The Graduation tab reflects that honestly:
+every pools.trade token shows **GRADUATED** the instant it's created, rather than a
+fabricated curve-progress number. Funding-lineage wallet clustering is also honestly
+absent for this chain (not unverified-and-hidden — genuinely not computed): standard
+Ethereum JSON-RPC has no address-indexed transaction history the way Solana's
+`getSignaturesForAddress` provides, so "who funded this wallet" isn't answerable
+without a provider-specific indexing API, which would break the BYOK-any-RPC promise.
 
 ## Support
 

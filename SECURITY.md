@@ -14,15 +14,18 @@ Flurry is a fully static, client-side application. There is no backend.
 
 ## Data flow
 
-user browser ── RPC reads ──> user-supplied Solana RPC
+user browser ── RPC reads ──> user-supplied Solana RPC, or user-supplied Robinhood Chain RPC
 user browser ── dossier calls (BYOK) ──> api.anthropic.com (user's key)
 user browser ── dossier calls (DESKTOP BRIDGE) ──> http://localhost:PORT (same machine) ──> claude CLI (subscription) or api.anthropic.com (ANTHROPIC_API_KEY from the bridge's own shell env)
 user browser ── SOL/USD price ──> lite-api.jup.ag (public, keyless, no data sent but the read itself)
+user browser ── ETH/USD price ──> api.coingecko.com (public, keyless, same trust model)
 user browser ── nothing ──> us. No telemetry, no analytics, no server.
 
-The Jupiter price read is the pump.fun provider's only non-RPC network call: raw
-Solana RPC has no price oracle, and market-cap USD figures need one. It's a plain
-GET with no identifying data in the request, same trust model as an RPC endpoint.
+The chain is a config selection (`[F3] CONFIG`), not a build-time choice — the same
+static app talks to whichever RPC endpoint (and, for market cap, whichever public price
+API) matches the chain you picked. Both price reads are a plain GET with no identifying
+data in the request, same trust model as an RPC endpoint, needed because neither
+chain's raw RPC exposes a price oracle.
 
 ## Desktop Bridge
 

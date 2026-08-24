@@ -53,6 +53,7 @@ export function Graduation() {
     } else {
       setPinned((p) => [
         {
+          chain: "solana",
           mint: `pinned-${q.toUpperCase()}`,
           ticker: q.slice(0, 10).toUpperCase(),
           program: "PUMP_FUN",
@@ -144,10 +145,31 @@ export function Graduation() {
                 borderBottom: "1px solid var(--flurry-dim)",
               }}
             >
-              <span>
-                {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}${g.ticker}
+              <span
+                style={{
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}
+                <span style={{ color: "var(--flurry-mid)" }}>
+                  {g.chain === "solana" ? "SOL" : "RHC"}·
+                </span>
+                ${g.ticker}
               </span>
-              <span style={{ color: "var(--flurry-cyan)" }}>{g.platformLabel}</span>
+              <span
+                style={{
+                  color: "var(--flurry-cyan)",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {g.platformLabel}
+              </span>
               <span style={{ color }}>
                 {"█".repeat(filled)}
                 {"░".repeat(BAR - filled)} {g.curveProgressPct.toFixed(1)}%

@@ -17,6 +17,7 @@ const STUB_OK = fileURLToPath(new URL("./__fixtures__/stub-claude-ok.mjs", impor
 const STUB_ERROR = fileURLToPath(new URL("./__fixtures__/stub-claude-error.mjs", import.meta.url));
 
 const VALID_EVIDENCE = {
+  chain: "solana",
   ticker: "TROLBULL",
   platformLabel: "PUMP.FUN",
   deployer: "26oAvbq3jBrg8F7uDw35LMz7URE4W3jbCn3VbuBspynE",

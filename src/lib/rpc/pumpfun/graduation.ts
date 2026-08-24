@@ -5,7 +5,7 @@ import {
   decodeBondingCurveAccount,
   type BondingCurveState,
 } from "./decode";
-import type { RpcCaller } from "./transport";
+import type { RpcCaller } from "../transport";
 import type { RpcAccountInfo, RpcResponseWithContext } from "./types";
 import type { GraduationEntry, LaunchProgram } from "../../schemas";
 
@@ -49,6 +49,7 @@ export function buildGraduationEntry(
   pinned: boolean,
 ): GraduationEntry {
   return {
+    chain: "solana",
     mint: meta.mint,
     ticker: meta.ticker,
     program: meta.program,
