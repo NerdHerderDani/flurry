@@ -138,6 +138,30 @@ hand-written one with less test coverage, for the same job.
   network latency variance. `detectBundle`'s thresholds are left unchanged (parameterized,
   chain-agnostic already); this is a note for future tuning with labeled data, not a
   code change made on the basis of a hunch.
+- **`firstBlockSupplyPct` calibration question — flagged, not retuned in this PR.**
+  On Solana's pump.fun, most of a fresh mint's supply sits in the bonding-curve PDA
+  after deploy — supply _moving to wallets_ within the deploy slot is a real signal,
+  because normally very little does. On a pools.trade instant launch the mechanics are
+  different by construction: the entire minted supply transits
+  `LaunchEntry → InstantLaunchStrategy → position-manager wrapper → PoolManager` in
+  the **same transaction**, so `detectBundle`'s `deploySlotSupplyPct` is structurally
+  ~100% for essentially every pools.trade launch, not just suspicious ones. Real
+  example (from live manual acceptance, tx `0xa1ce50e7...d174a36`, block 45115558,
+  $GACHA/GachaGang): netting that tx's own `Transfer` events gives PoolManager (the
+  pool/LP) ~95% and the deployer exactly 5%, summing to the 100% `scoreRisk` currently
+  reads as "first-block concentration" (`firstBlockSupplyPct > 30` → +3 toward the
+  tier) — for a launch with `bundled: false`, 0 linked wallets, and a 5% dev-hold that
+  scoreRisk's own `devHoldsPct > 8` threshold doesn't even flag. In other words: this
+  signal is likely saturated (always-on) for this launchpad's mechanical shape, and
+  may be scoring every single Robinhood Chain launch a tier higher than a Solana
+  launch with equivalent real risk. `detectBundle`'s `deploySlotSupplyPct` field itself
+  stays accurate (it correctly reports what fraction of supply moved) — the open
+  question is specifically whether `scoreRisk`'s `firstBlockSupplyPct` weighting, tuned
+  against Solana's very different deploy-block mechanics, needs a chain-aware
+  threshold (or a different EVM-side signal entirely, e.g. how much of that 100%
+  actually left the pool to a non-pool wallet) before it's meaningful here. Per
+  instruction, not retuned in this PR — needs labeled data, not a hunch, same as the
+  bundle-check thresholds above.
 - **Funding lineage — not implemented on this chain, and not fakeable into looking
   implemented.** Solana's one-hop lineage works because `getSignaturesForAddress`
   gives an address-indexed transaction history "for free." Standard Ethereum
