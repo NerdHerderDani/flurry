@@ -94,6 +94,7 @@ export function Scanner() {
     }
     const { bundle, linked } = analyze(r);
     const evidence: DossierEvidence = {
+      chain: r.chain,
       ticker: r.ticker,
       platformLabel: r.platformLabel,
       deployer: r.deployer,

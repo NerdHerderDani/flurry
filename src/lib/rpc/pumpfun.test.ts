@@ -29,6 +29,7 @@ const GLOBAL_ACCOUNT_BASE64 =
 
 function fakeLaunch(): Launch {
   return {
+    chain: "solana",
     mint: MINT,
     ticker: "TROLBULL",
     name: "TROLBULL",

@@ -53,6 +53,7 @@ export function Graduation() {
     } else {
       setPinned((p) => [
         {
+          chain: "solana",
           mint: `pinned-${q.toUpperCase()}`,
           ticker: q.slice(0, 10).toUpperCase(),
           program: "PUMP_FUN",

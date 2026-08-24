@@ -49,6 +49,7 @@ export function buildGraduationEntry(
   pinned: boolean,
 ): GraduationEntry {
   return {
+    chain: "solana",
     mint: meta.mint,
     ticker: meta.ticker,
     program: meta.program,
