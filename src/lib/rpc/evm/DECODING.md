@@ -13,6 +13,78 @@ own docs call it "not recommended for production," so the shipped provider (this
 is built and tested against a real Alchemy Robinhood Chain endpoint (WS-capable) for
 the live feed, and only Step 0's read-only survey queries used the public RPC.
 
+## Public RPC evaluation — is `rpc.mainnet.chain.robinhood.com` good enough to ship as the default?
+
+Tested 2026-08-24 for real against the _built_ app (not just raw RPC calls) — a
+user asked whether Flurry works with Robinhood's official public endpoint. Robinhood's
+own docs call it "not recommended for production," which is why the initial ship used
+Alchemy as the suggested default; this is the actual measurement of what that caveat
+means in practice for this specific access pattern.
+
+**Chain basics.** `eth_chainId` → `0x1237` (4663), correct, live.
+
+**WebSocket.** `wss://rpc.mainnet.chain.robinhood.com` rejects the upgrade outright —
+`Error during WebSocket handshake: Unexpected response code: 400` (confirmed both with
+a raw `ws` client and inside the real app via Playwright). This is HTTP-only. The
+provider's existing reconnect/poll-fallback logic (`evm/feed.ts`, same shape as the
+Solana feed) handles this exactly as designed: 4 failed WS attempts with backoff
+(500ms → 1000ms → 2000ms), ~6 seconds total, then falls back to 5s `eth_getLogs`
+polling and stays there. Measured in the running app: `FEED: RECONNECTING` for ~6s,
+then `FEED: LIVE` (poll mode) continuously for the rest of a 2.2-minute session, no
+further reconnect attempts, zero console errors.
+
+**`eth_getLogs` range behavior — no declared cap, but a real one.** Unlike Alchemy's
+free tier (explicit "10 block range" rejection, see the fix below), this endpoint
+returned real results with no error at every window size tested against the live
+factory address:
+
+| window (blocks)                                                                        | result                                                            | latency          |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------- |
+| 10                                                                                     | `[]` (too narrow to catch anything at real launch cadence)        | fast             |
+| 1,000 / 5,000 / 10,000 / 50,000                                                        | real logs returned                                                | fast             |
+| 100,000 (`deployerHistory.ts`'s exact window)                                          | 92 real logs, 3 repeat runs                                       | ~0.24–0.27s each |
+| full history (`0x0` → `latest`, ~45M blocks — `resolveQueuedMint`'s cold-lookup shape) | **`{"code":-32000,"message":"log query timed out"}`** after ~2.2s | —                |
+
+So the bounded-window queries this provider actually issues (deploy-block bundle
+check: 1 block; deployer history: 100,000 blocks) work fine and fast — no cap
+observed up to at least 100k blocks, which is _more_ permissive than Alchemy's free
+tier for exactly this provider's access pattern. Only a genuinely unbounded
+full-history scan fails, with a timeout rather than a range-cap error. `resolveQueuedMint`
+already degrades honestly here (checks the tracked-tokens cache first, so a mint
+already seen in Scanner needs no RPC call at all; a genuine cache miss now gets a
+clear "can't search full chain history" error — `robinhood.ts`'s
+`describeQueuedMintLookupFailure` matches both providers' distinct rejection texts).
+
+**CORS.** `access-control-allow-origin: *` on both the preflight and the real
+request — no browser CORS issue.
+
+**The "bot" 403 is a script fingerprint, not a browser block.** Raw `curl`/`urllib`
+calls with a script-like User-Agent (Python's default `Python-urllib/3.x`) get a
+Cloudflare `error code: 1010` 403; the identical request with a real Chrome UA string
+returns `200`. Verified this doesn't affect the actual app: Playwright's Chromium
+(a real browser engine) never hit this in the live test below.
+
+**Realistic session (built app, Playwright, ~2.5 minutes: feed running, Scanner row
+expanded for forensics, Graduation tab open and polling, back to Scanner).** Real
+launch observed and expanded (`deployer ... 1 prior launches`, `bundle check clean
+deploy slot`, `first block 100% of supply acquired`, `dev holds 1.9% of supply` — the
+1-prior-launch, non-zero `deployerPriorLaunches` confirms the 100k-block deployer-history
+query actually ran and decoded correctly). Zero console errors, zero 429s, `FEED: LIVE`
+held for the full session with no further reconnects. (The Scanner row list appearing
+empty right after switching back from the Graduation tab is `Scanner`'s own local
+`rows` state resetting on remount — `App.tsx` unmounts the inactive tab — not a feed
+or RPC issue; `FEED: LIVE` and the underlying feed connection are unaffected by tab
+switches, since the provider instance is cached by `useChainProvider`.)
+
+**Verdict: works acceptably, and is now the suggested zero-signup default in Config**,
+with Alchemy kept as the documented "if throttled, or if you want push-based updates
+instead of ~5s polling" upgrade path. Nothing here contradicts Robinhood's own
+"not recommended for production" caveat in general — it likely means no SLA, no
+support, and probably a lower ceiling under heavier load than what a small forensics
+terminal's read pattern puts on it — but for this app's specific, bounded, read-only
+access pattern it measured as fast, error-free, and CORS-friendly over a realistic
+session.
+
 ## Step 0.1 — chain basics, verified live
 
 | Fact       | Verified value                                                                             | Method                                                     |

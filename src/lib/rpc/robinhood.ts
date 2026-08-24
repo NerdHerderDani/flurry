@@ -38,8 +38,13 @@ interface TrackedToken extends TrackedTokenMeta {
 
 function describeQueuedMintLookupFailure(e: unknown): string {
   const message = e instanceof Error ? e.message : String(e);
-  if (/block range/i.test(message)) {
-    return "your RPC provider limits eth_getLogs to a narrow block range, so this address can't be looked up unless it's already in the live feed. Paste a mint you've seen in Scanner, or use a provider with a wider range.";
+  // Two real providers, two different rejection texts for the same underlying
+  // constraint — Alchemy's free tier rejects with an explicit range-cap
+  // message, Robinhood's own public RPC times out a full-history scan
+  // outright (verified live against both, see DECODING.md) — same honest
+  // answer either way: this lookup needs a bounded range this RPC won't give.
+  if (/block range/i.test(message) || /timed out/i.test(message)) {
+    return "your RPC provider can't search full chain history for this address (range-limited or timed out), so it can't be looked up unless it's already in the live feed. Paste a mint you've seen in Scanner, or use a provider with wider eth_getLogs support.";
   }
   return `couldn't look up this address: ${message}`;
 }

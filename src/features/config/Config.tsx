@@ -30,8 +30,8 @@ const RPC_COPY: Record<
   },
   robinhood: {
     label: "ROBINHOOD CHAIN RPC ENDPOINT",
-    placeholder: "https://robinhood-mainnet.g.alchemy.com/v2/...",
-    example: "https://robinhood-mainnet.g.alchemy.com/v2/YOUR_KEY",
+    placeholder: "https://rpc.mainnet.chain.robinhood.com",
+    example: "https://rpc.mainnet.chain.robinhood.com",
     providerName: "alchemy.com",
     providerUrl: "https://www.alchemy.com",
   },
@@ -273,12 +273,37 @@ export function Config() {
         )}
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
           expected shape: <span style={{ color: "var(--flurry-green)" }}>{rpcCopy.example}</span>{" "}
-          (or any {chain === "solana" ? "Solana" : "Robinhood Chain"} RPC provider&apos;s full URL).
-          no key yet? get a free one at{" "}
-          <a href={rpcCopy.providerUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
-            {rpcCopy.providerName}
-          </a>
-          .
+          (or any {chain === "solana" ? "Solana" : "Robinhood Chain"} RPC provider&apos;s full URL).{" "}
+          {chain === "robinhood" ? (
+            <>
+              the example above is Robinhood&apos;s own public RPC — free, zero signup, paste it
+              as-is. it has no WebSocket support, so the feed always falls back to ~5s polling
+              (tested: stable over a multi-minute session, no rate-limit errors). if you see
+              throttling or want push-based updates, get a free key at{" "}
+              <a
+                href={rpcCopy.providerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                {rpcCopy.providerName}
+              </a>{" "}
+              instead — see DECODING.md for the tested limits of both.
+            </>
+          ) : (
+            <>
+              no key yet? get a free one at{" "}
+              <a
+                href={rpcCopy.providerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                {rpcCopy.providerName}
+              </a>
+              .
+            </>
+          )}
         </p>
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
           {chain === "solana"
