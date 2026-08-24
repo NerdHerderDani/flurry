@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import { detectBundle } from "../../lib/forensics/bundle";
 import { clusterByFunding, linkedWalletCount } from "../../lib/forensics/cluster";
 import { scoreRisk, type RiskTier } from "../../lib/forensics/risk";
+import { ScanQueue, scanRow, type ScanState } from "../../lib/forensics/scan";
 import { runDossier } from "../../lib/ai/anthropic";
 import { BridgeNoBackendError, runDossierViaBridge } from "../../lib/ai/bridge";
-import { apiKeyAtom, bridgePortAtom, feedPausedAtom, modeAtom } from "../../state/atoms";
+import {
+  apiKeyAtom,
+  bridgePortAtom,
+  feedPausedAtom,
+  modeAtom,
+  rpcThrottledAtom,
+} from "../../state/atoms";
 import type { DossierEvidence, Launch } from "../../lib/schemas";
 
 const riskColor: Record<RiskTier, string> = {
@@ -23,8 +30,7 @@ interface Row extends Launch {
   dossier: string | null;
   dossierLoading: boolean;
   dossierError: string | null;
-  forensicsLoading: boolean;
-  forensicsLoaded: boolean;
+  scanState: ScanState;
 }
 
 export function Scanner() {
@@ -33,43 +39,93 @@ export function Scanner() {
   const apiKey = useAtomValue(apiKeyAtom);
   const mode = useAtomValue(modeAtom);
   const bridgePort = useAtomValue(bridgePortAtom);
+  const throttled = useAtomValue(rpcThrottledAtom);
   const provider = useChainProvider();
+
+  // Mirrors `rows` for use inside scanRow/ScanQueue callbacks that need the
+  // current row synchronously — not via a `useEffect(() => rowsRef.current =
+  // rows, [rows])` mirror, which lags a full render+commit behind. enqueue()
+  // calls scan() synchronously inside the same setRows updater that adds the
+  // row, so a lagging ref would see the row as not-yet-existing and bail out,
+  // permanently stranding it at "unscanned" (found live, via the built app,
+  // not just unit tests — see the state-machine tests for the parts that
+  // *are* covered by them). Written at every mutation site instead.
+  const rowsRef = useRef<Row[]>(rows);
+  const throttledRef = useRef(throttled);
+  useEffect(() => {
+    throttledRef.current = throttled;
+  }, [throttled]);
+
+  const patch = (mint: string, p: Partial<Row>) =>
+    setRows((rs) => {
+      const next = rs.map((r) => (r.mint === mint ? { ...r, ...p } : r));
+      rowsRef.current = next;
+      return next;
+    });
+
+  // Background scan queue: fills in real risk verdicts for rows still sitting
+  // at "unscanned", one at a time, without ever competing with a
+  // user-initiated expand (toggle() below calls scanRow directly, bypassing
+  // this queue) or the feed's own RPC traffic for the shared rate limiter.
+  const scanQueueRef = useRef<ScanQueue | null>(null);
+  useEffect(() => {
+    if (!provider.loadForensics) {
+      scanQueueRef.current = null;
+      return;
+    }
+    const loadForensics = provider.loadForensics;
+    const queue = new ScanQueue({
+      scan: (mint) =>
+        scanRow(mint, () => rowsRef.current.find((r) => r.mint === mint), patch, loadForensics),
+      isThrottled: () => throttledRef.current,
+    });
+    scanQueueRef.current = queue;
+    return () => {
+      queue.dispose();
+      scanQueueRef.current = null;
+    };
+  }, [provider]);
 
   useEffect(() => {
     const unsub = provider.subscribeLaunches((l) => {
       setRows((rs) => {
         if (paused) return rs;
-        return [
+        const nextRows: Row[] = [
           {
             ...l,
             open: false,
             dossier: null,
             dossierLoading: false,
             dossierError: null,
-            forensicsLoading: false,
-            forensicsLoaded: false,
+            // No loadForensics means the feed already carries full activity
+            // (e.g. demo) — nothing to lazily fetch, so it's scanned already.
+            scanState: (provider.loadForensics ? "unscanned" : "scanned") as ScanState,
           },
           ...rs,
         ].slice(0, 40);
+        const stillVisible = new Set(nextRows.map((row) => row.mint));
+        const evicted = rs.filter((row) => !stillVisible.has(row.mint)).map((row) => row.mint);
+        rowsRef.current = nextRows;
+        if (evicted.length) scanQueueRef.current?.dropAll(evicted);
+        if (provider.loadForensics) scanQueueRef.current?.enqueue(l.mint);
+        return nextRows;
       });
     });
     return unsub;
   }, [provider, paused]);
 
-  const patch = (mint: string, p: Partial<Row>) =>
-    setRows((rs) => rs.map((r) => (r.mint === mint ? { ...r, ...p } : r)));
-
   const toggle = (r: Row) => {
     const opening = !r.open;
     patch(r.mint, { open: opening });
-    if (opening && !r.forensicsLoaded && !r.forensicsLoading && provider.loadForensics) {
-      patch(r.mint, { forensicsLoading: true });
-      provider
-        .loadForensics(r)
-        .then((update) =>
-          patch(r.mint, { ...update, forensicsLoading: false, forensicsLoaded: true }),
-        )
-        .catch(() => patch(r.mint, { forensicsLoading: false, forensicsLoaded: true }));
+    if (opening && r.scanState === "unscanned" && provider.loadForensics) {
+      const loadForensics = provider.loadForensics;
+      scanQueueRef.current?.dropAll([r.mint]); // user expand always wins over the background queue
+      void scanRow(
+        r.mint,
+        () => rowsRef.current.find((x) => x.mint === r.mint),
+        patch,
+        loadForensics,
+      );
     }
   };
 
@@ -202,9 +258,17 @@ export function Scanner() {
                 <span style={{ color: linked > 5 ? "var(--flurry-amber)" : "var(--flurry-mid)" }}>
                   {linked}
                 </span>
-                <span style={{ color: riskColor[tier], textShadow: `0 0 8px ${riskColor[tier]}` }}>
-                  {tier}
-                </span>
+                {r.scanState === "scanned" ? (
+                  <span
+                    style={{ color: riskColor[tier], textShadow: `0 0 8px ${riskColor[tier]}` }}
+                  >
+                    {tier}
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--flurry-dim)" }}>
+                    {r.scanState === "scanning" ? "SCAN…" : "SCAN"}
+                  </span>
+                )}
               </div>
               {r.open && (
                 <div
@@ -214,7 +278,7 @@ export function Scanner() {
                   <pre className="whitespace-pre-wrap">
                     {`deployer      ${short(r.deployer)}   (${r.deployerPriorLaunches} prior launches, ${r.rugHistoryVerified ? `${r.deployerPriorRugs} rugs` : "rug history: unverified"})
 mint          ${short(r.mint)}
-bundle check  ${r.forensicsLoading ? "loading..." : bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}
+bundle check  ${r.scanState !== "scanned" ? "loading..." : bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}
 first block   ${bundle.deploySlotSupplyPct}% of supply acquired${bundle.deploySlotSupplyPct > 30 ? "  ⚠ concentration" : ""}
 wallet links  ${linked} wallets share funding lineage${clusters[0] ? `\nfunder        ${short(clusters[0].funder)} (${clusters[0].wallets.length}-wallet cluster)` : ""}
 dev holds     ${r.devHoldsPct}% of supply`}
