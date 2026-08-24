@@ -1,6 +1,6 @@
 import { slotActivityFromTransaction } from "./decode";
 import { findFundedBy } from "./lineage";
-import type { RpcCaller } from "./transport";
+import type { RpcCaller } from "../transport";
 import type { RpcSignatureInfo, RpcTransaction } from "./types";
 import type { SlotActivity } from "../../schemas";
 

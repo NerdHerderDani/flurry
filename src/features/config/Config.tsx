@@ -3,10 +3,12 @@ import { useAtom } from "jotai";
 import {
   apiKeyAtom,
   bridgePortAtom,
+  chainAtom,
   modeAtom,
   rpcUrlAtom,
   type ConnectionMode,
 } from "../../state/atoms";
+import type { Chain } from "../../lib/schemas";
 import { checkBridge, type HealthResult } from "../../lib/ai/bridge";
 
 const linkStyle = { color: "var(--flurry-cyan)", textDecoration: "underline" };
@@ -15,15 +17,37 @@ const BRIDGE_RAW_URL =
 const BRIDGE_SETUP_COMMANDS = `curl -O ${BRIDGE_RAW_URL}\nnode flurry-bridge.mjs`;
 const BRIDGE_POLL_MS = 5000;
 
+const RPC_COPY: Record<
+  Chain,
+  { label: string; placeholder: string; example: string; providerName: string; providerUrl: string }
+> = {
+  solana: {
+    label: "SOLANA RPC ENDPOINT",
+    placeholder: "https://your-rpc-provider.example/...",
+    example: "https://mainnet.helius-rpc.com/?api-key=YOUR_KEY",
+    providerName: "helius.dev",
+    providerUrl: "https://www.helius.dev",
+  },
+  robinhood: {
+    label: "ROBINHOOD CHAIN RPC ENDPOINT",
+    placeholder: "https://robinhood-mainnet.g.alchemy.com/v2/...",
+    example: "https://robinhood-mainnet.g.alchemy.com/v2/YOUR_KEY",
+    providerName: "alchemy.com",
+    providerUrl: "https://www.alchemy.com",
+  },
+};
+
 export function Config() {
   const [mode, setMode] = useAtom(modeAtom);
   const [apiKey, setApiKey] = useAtom(apiKeyAtom);
+  const [chain, setChain] = useAtom(chainAtom);
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
   const [bridgePort, setBridgePort] = useAtom(bridgePortAtom);
   const [bridgeHealth, setBridgeHealth] = useState<HealthResult | null>(null);
   const [bridgeReachable, setBridgeReachable] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const rpcCopy = RPC_COPY[chain];
   const rpcLooksLikeBareKey = rpcUrl.trim().length > 0 && !rpcUrl.trim().startsWith("https://");
 
   // Live status, polled every 5s while this tab is visible (brief: DESKTOP BRIDGE mode).
@@ -66,6 +90,33 @@ export function Config() {
         everything runs in your browser. keys are held in memory for this session only — nothing is
         stored, nothing is sent anywhere except the providers you configure.
       </p>
+      <div className="mb-4">
+        <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          CHAIN
+        </div>
+        <div className="flex gap-2">
+          {(
+            [
+              ["solana", "SOLANA"],
+              ["robinhood", "ROBINHOOD"],
+            ] as [Chain, string][]
+          ).map(([c, label]) => (
+            <button
+              key={c}
+              onClick={() => setChain(c)}
+              className="px-3 py-1 text-xs"
+              style={{
+                color: chain === c ? "var(--flurry-bg)" : "var(--flurry-green)",
+                background: chain === c ? "var(--flurry-green)" : "transparent",
+                border: "1px solid var(--flurry-dim)",
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="mb-4">
         <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
           CONNECTION MODE
@@ -201,12 +252,12 @@ export function Config() {
       )}
       <div className="mb-4">
         <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
-          SOLANA RPC ENDPOINT
+          {rpcCopy.label}
         </div>
         <input
           value={rpcUrl}
           onChange={(e) => setRpcUrl(e.target.value)}
-          placeholder="https://your-rpc-provider.example/..."
+          placeholder={rpcCopy.placeholder}
           className="w-full px-2 py-1 text-sm outline-none"
           style={{
             background: "var(--flurry-panel)",
@@ -221,25 +272,18 @@ export function Config() {
           </p>
         )}
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
-          expected shape:{" "}
-          <span style={{ color: "var(--flurry-green)" }}>
-            https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-          </span>{" "}
-          (or any Solana RPC provider&apos;s full URL). no key yet? get a free one at{" "}
-          <a
-            href="https://www.helius.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={linkStyle}
-          >
-            helius.dev
+          expected shape: <span style={{ color: "var(--flurry-green)" }}>{rpcCopy.example}</span>{" "}
+          (or any {chain === "solana" ? "Solana" : "Robinhood Chain"} RPC provider&apos;s full URL).
+          no key yet? get a free one at{" "}
+          <a href={rpcCopy.providerUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+            {rpcCopy.providerName}
           </a>
           .
         </p>
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
-          pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug
-          history and 1h volume/holders can&apos;t be verified from raw RPC — always shown as
-          unverified. leave blank for the demo feed.
+          {chain === "solana"
+            ? "pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug history and 1h volume/holders can't be verified from raw RPC — always shown as unverified. leave blank for the demo feed."
+            : "pools.trade live feed, bundle checks, and deployer history read from this endpoint. rug history, 1h volume/holders, and funding lineage can't be verified from raw RPC — always shown as unverified. pools.trade has no bonding curve, so every token shows GRADUATED at listing. leave blank for the demo feed."}
         </p>
       </div>
     </div>

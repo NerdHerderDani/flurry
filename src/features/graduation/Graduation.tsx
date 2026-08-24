@@ -148,7 +148,12 @@ export function Graduation() {
               <span>
                 {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}${g.ticker}
               </span>
-              <span style={{ color: "var(--flurry-cyan)" }}>{g.platformLabel}</span>
+              <span style={{ color: "var(--flurry-cyan)" }}>
+                <span style={{ color: "var(--flurry-mid)" }}>
+                  {g.chain === "solana" ? "SOL" : "RHC"}·
+                </span>
+                {g.platformLabel}
+              </span>
               <span style={{ color }}>
                 {"█".repeat(filled)}
                 {"░".repeat(BAR - filled)} {g.curveProgressPct.toFixed(1)}%

@@ -5,7 +5,7 @@ import {
   decodeBondingCurveAccount,
   type BondingCurveState,
 } from "./decode";
-import type { RpcCaller } from "./transport";
+import type { RpcCaller } from "../transport";
 import type { RpcAccountInfo, RpcResponseWithContext } from "./types";
 import type { GraduationEntry, LaunchProgram } from "../../schemas";
 

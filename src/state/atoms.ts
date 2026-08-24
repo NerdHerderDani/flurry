@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import type { Chain } from "../lib/schemas";
 
 export type ConnectionMode = "byok" | "desktop";
 
@@ -12,6 +13,7 @@ export const apiKeyAtom = atom<string>("");
 export const rpcUrlAtom = atom<string>("");
 export const feedPausedAtom = atom<boolean>(false);
 export const bridgePortAtom = atom<number>(4114);
+export const chainAtom = atom<Chain>("solana");
 
 export type FeedStatus = "LIVE" | "RECONNECTING" | "DEMO";
 export const feedStatusAtom = atom<FeedStatus>("DEMO");

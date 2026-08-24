@@ -174,7 +174,12 @@ export function Scanner() {
                 <span style={{ color: "var(--flurry-mid)" }}>
                   {ageSec < 60 ? `${ageSec}s` : `${Math.floor(ageSec / 60)}m`}
                 </span>
-                <span style={{ color: "var(--flurry-cyan)" }}>{r.platformLabel}</span>
+                <span style={{ color: "var(--flurry-cyan)" }}>
+                  <span style={{ color: "var(--flurry-mid)" }}>
+                    {r.chain === "solana" ? "SOL" : "RHC"}·
+                  </span>
+                  {r.platformLabel}
+                </span>
                 <span>
                   ${r.ticker} <span style={{ color: "var(--flurry-mid)" }}>· {r.name}</span>
                 </span>
