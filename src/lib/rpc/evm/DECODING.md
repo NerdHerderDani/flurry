@@ -162,3 +162,16 @@ hand-written one with less test coverage, for the same job.
   cheap-RPC ceiling as Solana's pump.fun provider and are `0`/`volHoldersVerified: false`.
 - **mcapUsd:** same pattern as Solana's SOL/USD read — one keyless ETH/USD fetch (see
   SECURITY.md), combined with the pool's reserves for a fully-diluted valuation.
+- **Free-tier `eth_getLogs` range caps — found live, fixed.** Manual acceptance against
+  a real Alchemy free-tier endpoint surfaced a real bug: Alchemy's free tier rejects
+  `eth_getLogs` outright once the requested block range exceeds 10 blocks, even when the
+  query is topic-filtered to a single address. `deployerHistory.ts`'s 100,000-block scan
+  and `resolveQueuedMint`'s full-history scans both hit this. Worse, `loadForensics`
+  combined the fragile deployer-history call with the robust single-block bundle-check
+  call via `Promise.all` — one rejecting silently discarded the other's already-correct
+  result. Fixed: `deployerHistory.ts` and `forensics.ts` now degrade honestly (empty/zero,
+  not a thrown error) on any `eth_getLogs` failure instead of taking a sibling call down
+  with them; `resolveQueuedMint` now checks the in-memory tracked-tokens cache first (the
+  common case — a mint just seen in Scanner needs no fresh RPC call at all) and, on a
+  genuine cache miss, surfaces a clear "your RPC provider limits eth_getLogs to a narrow
+  block range" error instead of a raw JSON-RPC rejection.

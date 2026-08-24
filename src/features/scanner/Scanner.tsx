@@ -174,13 +174,21 @@ export function Scanner() {
                 <span style={{ color: "var(--flurry-mid)" }}>
                   {ageSec < 60 ? `${ageSec}s` : `${Math.floor(ageSec / 60)}m`}
                 </span>
-                <span style={{ color: "var(--flurry-cyan)" }}>
+                <span
+                  style={{
+                    color: "var(--flurry-cyan)",
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   <span style={{ color: "var(--flurry-mid)" }}>
                     {r.chain === "solana" ? "SOL" : "RHC"}·
                   </span>
                   {r.platformLabel}
                 </span>
-                <span>
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   ${r.ticker} <span style={{ color: "var(--flurry-mid)" }}>· {r.name}</span>
                 </span>
                 <span>${Math.round(r.mcapUsd / 1000)}k</span>

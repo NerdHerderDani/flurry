@@ -36,6 +36,14 @@ interface TrackedToken extends TrackedTokenMeta {
   mcapUsd: number;
 }
 
+function describeQueuedMintLookupFailure(e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e);
+  if (/block range/i.test(message)) {
+    return "your RPC provider limits eth_getLogs to a narrow block range, so this address can't be looked up unless it's already in the live feed. Paste a mint you've seen in Scanner, or use a provider with a wider range.";
+  }
+  return `couldn't look up this address: ${message}`;
+}
+
 export interface RobinhoodChainProviderCallbacks {
   onStatus?: (status: FeedStatus) => void;
   onThrottle?: (throttled: boolean) => void;
@@ -181,6 +189,17 @@ export function createRobinhoodChainProvider(
     async resolveQueuedMint(mint): Promise<GraduationEntry> {
       if (!isValidAddress("robinhood", mint)) throw new Error("not a valid EVM address");
 
+      // Fast path: a mint we've already seen via our own feed needs no fresh
+      // RPC lookup at all — this also sidesteps the full-history eth_getLogs
+      // scan below, which many real free-tier RPCs (Alchemy's included —
+      // verified live: 10-block eth_getLogs cap) reject outright regardless
+      // of topic filtering. Re-queueing something just watched in Scanner is
+      // the common case, so this keeps it working even on such a provider.
+      const cached = [...trackedTokens.entries()].find(
+        ([addr]) => addr.toLowerCase() === mint.toLowerCase(),
+      )?.[1];
+      if (cached) return buildGraduationEntry(cached, cached.mcapUsd, true);
+
       const launchedTopics = encodeEventTopics({
         abi: [TOKEN_LAUNCHED_EVENT],
         eventName: "TokenLaunched",
@@ -191,24 +210,29 @@ export function createRobinhoodChainProvider(
         eventName: "DistributionInitialized",
         args: { token: mint as `0x${string}` },
       });
-      const [launchedLogs, distLogs] = await Promise.all([
-        transport.call<RpcLog[]>("eth_getLogs", [
-          {
-            address: INSTANT_LAUNCH_STRATEGY_ADDRESS,
-            topics: launchedTopics,
-            fromBlock: "0x0",
-            toBlock: "latest",
-          },
-        ]),
-        transport.call<RpcLog[]>("eth_getLogs", [
-          {
-            address: INSTANT_LAUNCH_STRATEGY_ADDRESS,
-            topics: distTopics,
-            fromBlock: "0x0",
-            toBlock: "latest",
-          },
-        ]),
-      ]);
+      let launchedLogs: RpcLog[], distLogs: RpcLog[];
+      try {
+        [launchedLogs, distLogs] = await Promise.all([
+          transport.call<RpcLog[]>("eth_getLogs", [
+            {
+              address: INSTANT_LAUNCH_STRATEGY_ADDRESS,
+              topics: launchedTopics,
+              fromBlock: "0x0",
+              toBlock: "latest",
+            },
+          ]),
+          transport.call<RpcLog[]>("eth_getLogs", [
+            {
+              address: INSTANT_LAUNCH_STRATEGY_ADDRESS,
+              topics: distTopics,
+              fromBlock: "0x0",
+              toBlock: "latest",
+            },
+          ]),
+        ]);
+      } catch (e) {
+        throw new Error(describeQueuedMintLookupFailure(e));
+      }
       const launchedLog = launchedLogs[0];
       if (!launchedLog) throw new Error("no pools.trade TokenLaunched event for this address");
 
@@ -228,14 +252,19 @@ export function createRobinhoodChainProvider(
       let mcapUsd = 0;
       if (poolIdTopic && solUsd !== null) {
         const swapTopics = encodeEventTopics({ abi: [POOL_SWAP_EVENT], eventName: "Swap" });
-        const swapLogs = await transport.call<RpcLog[]>("eth_getLogs", [
-          {
-            address: POOL_MANAGER_ADDRESS,
-            topics: [swapTopics[0] ?? null, poolIdTopic],
-            fromBlock: "0x0",
-            toBlock: "latest",
-          },
-        ]);
+        let swapLogs: RpcLog[];
+        try {
+          swapLogs = await transport.call<RpcLog[]>("eth_getLogs", [
+            {
+              address: POOL_MANAGER_ADDRESS,
+              topics: [swapTopics[0] ?? null, poolIdTopic],
+              fromBlock: "0x0",
+              toBlock: "latest",
+            },
+          ]);
+        } catch {
+          swapLogs = []; // mcapUsd degrades to 0/unpriced — the launch itself is already confirmed above
+        }
         const lastSwapLog = swapLogs[swapLogs.length - 1];
         const swap = lastSwapLog && decodeSwapFromLog(lastSwapLog);
         if (swap) mcapUsd = computeMcapUsdFromSwap(swap, totalSupply, solUsd);

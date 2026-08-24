@@ -145,13 +145,24 @@ export function Graduation() {
                 borderBottom: "1px solid var(--flurry-dim)",
               }}
             >
-              <span>
-                {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}${g.ticker}
-              </span>
-              <span style={{ color: "var(--flurry-cyan)" }}>
+              <span
+                style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              >
+                {g.pinned && <span style={{ color: "var(--flurry-amber)" }}>★ </span>}
                 <span style={{ color: "var(--flurry-mid)" }}>
                   {g.chain === "solana" ? "SOL" : "RHC"}·
                 </span>
+                ${g.ticker}
+              </span>
+              <span
+                style={{
+                  color: "var(--flurry-cyan)",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {g.platformLabel}
               </span>
               <span style={{ color }}>

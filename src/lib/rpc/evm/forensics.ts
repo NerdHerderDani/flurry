@@ -7,7 +7,11 @@ import type { SlotActivity } from "../../schemas";
  * Brief section "bundle check": every ERC-20 Transfer of this token within the
  * exact deploy block, netted per address (see decode.ts). One eth_getLogs call —
  * unlike Solana, EVM logs are natively block-range-filterable, so this needs no
- * per-signature getTransaction loop.
+ * per-signature getTransaction loop. A single-block range is well within even
+ * the tightest real free-tier caps seen (Alchemy's free tier allows up to 10),
+ * but this still degrades to "no activity found" rather than throwing if a
+ * given RPC is stricter still — a sibling lazy-load failing must not read as
+ * this one having failed too (see deployerHistory.ts's comment).
  */
 export async function fetchDeployBlockActivity(
   transport: RpcCaller,
@@ -15,10 +19,14 @@ export async function fetchDeployBlockActivity(
   deployBlock: number,
   totalSupply: bigint,
 ): Promise<SlotActivity[]> {
-  const logs = await transport.call<RpcLog[]>("eth_getLogs", [
-    { address: tokenAddress, fromBlock: numToHex(deployBlock), toBlock: numToHex(deployBlock) },
-  ]);
-  return slotActivityFromLogs(logs, tokenAddress as `0x${string}`, deployBlock, totalSupply);
+  try {
+    const logs = await transport.call<RpcLog[]>("eth_getLogs", [
+      { address: tokenAddress, fromBlock: numToHex(deployBlock), toBlock: numToHex(deployBlock) },
+    ]);
+    return slotActivityFromLogs(logs, tokenAddress as `0x${string}`, deployBlock, totalSupply);
+  } catch {
+    return [];
+  }
 }
 
 /**
