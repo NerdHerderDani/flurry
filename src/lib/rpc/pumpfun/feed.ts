@@ -43,6 +43,7 @@ export class PumpFunLaunchFeed {
   private seenSignatures = new Set<string>();
   private seenOrder: string[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private isFirstPoll = true;
 
   constructor(
     private readonly rpcUrl: string,
@@ -157,6 +158,19 @@ export class PumpFunLaunchFeed {
           PUMP_FUN_PROGRAM_ID,
           { limit: batchSize },
         ]);
+        // On the very first tick, nothing is "seen" yet — every signature the RPC
+        // happens to return would otherwise look fresh, re-announcing pre-existing
+        // history as brand-new launches. Seed the seen-set as a baseline instead,
+        // same as the EVM feed's `lastPolledBlock = latest` on its first tick.
+        if (this.isFirstPoll) {
+          this.isFirstPoll = false;
+          for (const s of sigs) {
+            this.seenSignatures.add(s.signature);
+            this.seenOrder.push(s.signature);
+          }
+          this.opts.onStatus("LIVE");
+          return;
+        }
         const fresh = sigs.filter((s) => !this.seenSignatures.has(s.signature));
         for (const s of fresh) {
           this.seenSignatures.add(s.signature);
