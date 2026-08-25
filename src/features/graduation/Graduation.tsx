@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useChainProvider } from "../../lib/rpc/useChainProvider";
+import { jtxTokenUrl } from "../../lib/jtx";
 import type { GraduationEntry } from "../../lib/schemas";
 
 const BAR = 22;
@@ -178,7 +179,22 @@ export function Graduation() {
               <span style={{ color: g.volHoldersVerified ? undefined : "var(--flurry-mid)" }}>
                 {g.volHoldersVerified ? `$${Math.round(g.vol1hUsd / 1000)}k` : "unverified"}
               </span>
-              <span style={{ color }}>{done ? "GRADUATED" : close ? "CLOSE" : "CURVE"}</span>
+              <span style={{ color }}>
+                {done ? "GRADUATED" : close ? "CLOSE" : "CURVE"}
+                {/* JTX is Solana-only spot trading — no link for RHC rows. */}
+                {done && g.chain === "solana" && (
+                  <a
+                    href={jtxTokenUrl(g.mint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-xs"
+                    style={{ color: "var(--flurry-cyan)", textDecoration: "underline" }}
+                    title="opens this token's market on JTX (referral link — see SUPPORT tab)"
+                  >
+                    TRADE ON JTX ↗
+                  </a>
+                )}
+              </span>
             </div>
           );
         })}

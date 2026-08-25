@@ -135,6 +135,16 @@ terminal's `[F4] SUPPORT` tab.
 It's forensics. Verdicts are heuristics plus a language model reading evidence.
 Do your own research; this tool just makes the research faster.
 
+## Disclosure
+
+The developer works at Jito Labs, holds JTO, and earns JTX referral fees:
+the `TRADE ON JTX ↗` links in the Graduation and Support tabs carry a referral
+code. Trading through them costs you nothing extra — the referral share (20%
+of the fees you were paying anyway) is paid by JTX to the developer, and the
+80% of JTX platform fees committed to JTO buybacks and burns under JIP-38 is
+unaffected. Flurry itself remains free, keyless, and telemetry-free; the
+referral links are the only monetization in the app.
+
 ## License
 
 Apache-2.0
