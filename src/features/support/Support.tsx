@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { JTX_REFERRAL_URL } from "../../lib/jtx";
 
 // Donation wallet — operator-provided 2026-08-20.
 export const DONATION_ADDRESS = "4KRr3d6hm9UJHnZBmhPfvZtUd3cETRScCTvsagtq6CbE";
@@ -45,6 +46,30 @@ if it saved you from a bundled launch, the tip jar exists:`}
         >
           {copied ? "COPIED" : "COPY SOL ADDR"}
         </button>
+      </div>
+      <div className="mt-6 p-3" style={{ border: "1px solid var(--flurry-dim)" }}>
+        <p className="mb-2 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          another way to support, at zero cost to you: trade on JTX through this referral link. your
+          fees don&apos;t change — JTX pays the dev the referral share (20% of the fees you were
+          paying anyway), and the 80% of platform fees committed to JTO buybacks and burns under
+          JIP-38 is unaffected.
+        </p>
+        <a
+          href={JTX_REFERRAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-3 py-1 text-xs"
+          style={{
+            color: "var(--flurry-cyan)",
+            border: "1px solid var(--flurry-cyan)",
+            textDecoration: "none",
+          }}
+        >
+          TRADE ON JTX ↗
+        </a>
+        <p className="mt-2 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          disclosure: the dev works at Jito Labs, holds JTO, and earns JTX referral fees.
+        </p>
       </div>
       <p className="mt-4 text-xs" style={{ color: "var(--flurry-mid)" }}>
         source on github · issues and PRs welcome
