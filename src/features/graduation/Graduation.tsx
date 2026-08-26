@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useAtom } from "jotai";
 import { useQuery } from "@tanstack/react-query";
 import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import { jtxTokenUrl } from "../../lib/jtx";
+import { Term } from "../../components/terminal/Term";
+import { deepLinkAtom } from "../../state/atoms";
 import type { GraduationEntry } from "../../lib/schemas";
 
 const BAR = 22;
@@ -12,6 +15,31 @@ export function Graduation() {
   const [query, setQuery] = useState("");
   const [pinned, setPinned] = useState<GraduationEntry[]>([]);
   const [queueError, setQueueError] = useState<string | null>(null);
+  const [deepLink, setDeepLink] = useAtom(deepLinkAtom);
+
+  // A shared ?chain&mint link resolves through the exact same path as the
+  // queue box: real chain lookup, pinned on top. Errors reuse the queue error line.
+  useEffect(() => {
+    if (deepLink.kind !== "token") return;
+    const resolve = provider.resolveQueuedMint;
+    if (!resolve) {
+      // Demo provider can't look up real mints — say so instead of hanging.
+      setDeepLink({ kind: "none" });
+      setQueueError(
+        "shared link: resolving a real mint needs a live RPC — paste a free key in [F3] CONFIG, then re-open the link.",
+      );
+      return;
+    }
+    const { mint } = deepLink;
+    setDeepLink({ kind: "none" });
+    resolve(mint)
+      .then((entry) => setPinned((p) => (p.some((x) => x.mint === entry.mint) ? p : [entry, ...p])))
+      .catch((e: unknown) =>
+        setQueueError(
+          `shared link: ${e instanceof Error ? e.message : "failed to resolve the mint"}`,
+        ),
+      );
+  }, [deepLink, provider, setDeepLink]);
 
   const { data = [] } = useQuery({
     queryKey: ["graduation", provider.name],
@@ -110,21 +138,25 @@ export function Graduation() {
         </div>
       )}
       <div className="mb-2 text-xs" style={{ color: "var(--flurry-mid)" }}>
-        bonding curve progress // GRADUATED ≥ 100% · CLOSE ≥ 90% · pinned entries stay on top
+        <Term term="bonding curve">bonding curve</Term> progress //{" "}
+        <Term term="graduation">GRADUATED</Term> ≥ 100% · CLOSE ≥ 90% · pinned entries stay on top
       </div>
       <div style={{ border: "1px solid var(--flurry-dim)" }}>
         <div
-          className="grid px-2 py-1 text-xs"
+          className="grid grid-cols-[110px_100px_1fr_80px_80px_90px] px-2 py-1 text-xs max-sm:hidden"
           style={{
-            gridTemplateColumns: "110px 100px 1fr 80px 80px 90px",
             color: "var(--flurry-mid)",
             borderBottom: "1px solid var(--flurry-dim)",
           }}
         >
           <span>TOKEN</span>
           <span>PLATFORM</span>
-          <span>CURVE</span>
-          <span>MCAP</span>
+          <span>
+            <Term term="bonding curve">CURVE</Term>
+          </span>
+          <span>
+            <Term term="mcap">MCAP</Term>
+          </span>
           <span>VOL/1H</span>
           <span>STATUS</span>
         </div>
@@ -140,9 +172,8 @@ export function Graduation() {
           return (
             <div
               key={g.mint}
-              className="grid px-2 py-1 text-sm"
+              className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-2 py-3 text-sm sm:grid-cols-[110px_100px_1fr_80px_80px_90px] sm:py-1"
               style={{
-                gridTemplateColumns: "110px 100px 1fr 80px 80px 90px",
                 borderBottom: "1px solid var(--flurry-dim)",
               }}
             >
@@ -171,16 +202,20 @@ export function Graduation() {
               >
                 {g.platformLabel}
               </span>
-              <span style={{ color }}>
+              <span className="max-sm:hidden" style={{ color }}>
                 {"█".repeat(filled)}
                 {"░".repeat(BAR - filled)} {g.curveProgressPct.toFixed(1)}%
               </span>
-              <span>${Math.round(g.mcapUsd / 1000)}k</span>
-              <span style={{ color: g.volHoldersVerified ? undefined : "var(--flurry-mid)" }}>
+              <span className="max-sm:hidden">${Math.round(g.mcapUsd / 1000)}k</span>
+              <span
+                className="max-sm:hidden"
+                style={{ color: g.volHoldersVerified ? undefined : "var(--flurry-mid)" }}
+              >
                 {g.volHoldersVerified ? `$${Math.round(g.vol1hUsd / 1000)}k` : "unverified"}
               </span>
               <span style={{ color }}>
                 {done ? "GRADUATED" : close ? "CLOSE" : "CURVE"}
+                <span className="sm:hidden"> {g.curveProgressPct.toFixed(0)}%</span>
                 {/* JTX is Solana-only spot trading — no link for RHC rows. */}
                 {done && g.chain === "solana" && (
                   <a

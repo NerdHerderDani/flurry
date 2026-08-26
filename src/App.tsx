@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
+import { useAtomValue, useAtom, useSetAtom } from "jotai";
+import { parseDeepLink } from "./lib/deepLink";
 import { BootLog } from "./components/terminal/BootLog";
 import { TabBar, type TabId } from "./components/terminal/TabBar";
 import { Scanner } from "./features/scanner/Scanner";
 import { Graduation } from "./features/graduation/Graduation";
 import { Config } from "./features/config/Config";
 import { Support } from "./features/support/Support";
-import { apiKeyAtom, feedStatusAtom, modeAtom, rpcThrottledAtom, rpcUrlAtom } from "./state/atoms";
+import {
+  apiKeyAtom,
+  chainAtom,
+  deepLinkAtom,
+  feedStatusAtom,
+  modeAtom,
+  rpcSourceAtom,
+  rpcThrottledAtom,
+} from "./state/atoms";
 
 const feedColor: Record<string, string> = {
   LIVE: "var(--flurry-green)",
@@ -14,14 +23,35 @@ const feedColor: Record<string, string> = {
   DEMO: "var(--flurry-amber)",
 };
 
+const rpcBadge = {
+  custom: { label: "CUSTOM", color: "var(--flurry-green)" },
+  public: { label: "PUBLIC (SLOW)", color: "var(--flurry-amber)" },
+  demo: { label: "DEMO FEED", color: "var(--flurry-amber)" },
+} as const;
+
 export function App() {
   const [booted, setBooted] = useState(false);
   const [tab, setTab] = useState<TabId>("scan");
   const apiKey = useAtomValue(apiKeyAtom);
-  const rpcUrl = useAtomValue(rpcUrlAtom);
+  const rpcSource = useAtomValue(rpcSourceAtom);
   const mode = useAtomValue(modeAtom);
   const feedStatus = useAtomValue(feedStatusAtom);
   const throttled = useAtomValue(rpcThrottledAtom);
+  const [deepLink, setDeepLink] = useAtom(deepLinkAtom);
+  const setChain = useSetAtom(chainAtom);
+
+  // Deep link: parsed once at boot, validated before any use. A valid token
+  // link selects its chain and lands on Graduation, where the mint resolves
+  // via the same path as the queue box; garbage shows a visible error below.
+  useEffect(() => {
+    const dl = parseDeepLink(window.location.search);
+    if (dl.kind === "none") return;
+    setDeepLink(dl);
+    if (dl.kind === "token") {
+      setChain(dl.chain);
+      setTab("grad");
+    }
+  }, [setChain, setDeepLink]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -43,8 +73,8 @@ export function App() {
             FEED: <span style={{ color: feedColor[feedStatus] }}>{feedStatus}</span>{" "}
             {throttled && <span style={{ color: "var(--flurry-red)" }}>RPC: THROTTLED </span>}
             RPC:{" "}
-            <span style={{ color: rpcUrl ? "var(--flurry-green)" : "var(--flurry-amber)" }}>
-              {rpcUrl ? "CUSTOM" : "DEMO FEED"}
+            <span style={{ color: rpcBadge[rpcSource].color }}>
+              {rpcBadge[rpcSource].label}
             </span>{" "}
             KEY:{" "}
             <span style={{ color: apiKey ? "var(--flurry-green)" : "var(--flurry-amber)" }}>
@@ -62,6 +92,23 @@ export function App() {
         ) : (
           <>
             <TabBar tab={tab} onTab={setTab} />
+            {deepLink.kind === "error" && (
+              <div className="mb-2 text-xs" style={{ color: "var(--flurry-red)" }}>
+                shared link error: {deepLink.message}{" "}
+                <button
+                  onClick={() => setDeepLink({ kind: "none" })}
+                  className="px-2"
+                  style={{
+                    color: "var(--flurry-mid)",
+                    background: "transparent",
+                    border: "1px solid var(--flurry-dim)",
+                    cursor: "pointer",
+                  }}
+                >
+                  DISMISS
+                </button>
+              </div>
+            )}
             {tab === "scan" && <Scanner />}
             {tab === "grad" && <Graduation />}
             {tab === "cfg" && <Config />}

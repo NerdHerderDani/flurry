@@ -1,5 +1,6 @@
 import { RugcheckError } from "../../lib/rugcheck/client";
 import { useRugcheck } from "../../lib/rugcheck/useRugcheck";
+import { Term } from "../../components/terminal/Term";
 import type { Chain } from "../../lib/schemas";
 
 /**
@@ -61,11 +62,14 @@ export function RugcheckPanel({
     <div className="mt-2 p-2 text-xs" style={{ border: "1px dashed var(--flurry-dim)" }}>
       {header}
       <pre className="whitespace-pre-wrap">
-        {`rugged        ${c.rugged ? "⚠ RUGGED (per rugcheck)" : "no"}
-their score   ${Math.round(c.riskScoreNormalised)}/100 (rugcheck scale, higher = riskier)
-lp locked     ${c.lpLockedPct != null ? `${c.lpLockedPct.toFixed(1)}%` : "not provided"}
-insiders      ${c.insiderNetworkCount} network(s)${c.insiderNetworkMaxSize > 0 ? ` · largest ${c.insiderNetworkMaxSize} wallets` : ""}${c.graphInsidersDetected != null ? ` · ${c.graphInsidersDetected} holders flagged` : ""}
-creator toks  ${c.creatorTokenCount != null ? `${c.creatorTokenCount} other token(s) by this creator` : "not provided"}`}
+        <Term term="rugged">rugged</Term>
+        {`        ${c.rugged ? "⚠ RUGGED (per rugcheck)" : "no"}\n`}
+        {`their score   ${Math.round(c.riskScoreNormalised)}/100 (rugcheck scale, higher = riskier)\n`}
+        <Term term="lp lock">lp locked</Term>
+        {`     ${c.lpLockedPct != null ? `${c.lpLockedPct.toFixed(1)}%` : "not provided"}\n`}
+        <Term term="insider network">insiders</Term>
+        {`      ${c.insiderNetworkCount} network(s)${c.insiderNetworkMaxSize > 0 ? ` · largest ${c.insiderNetworkMaxSize} wallets` : ""}${c.graphInsidersDetected != null ? ` · ${c.graphInsidersDetected} holders flagged` : ""}\n`}
+        {`creator toks  ${c.creatorTokenCount != null ? `${c.creatorTokenCount} other token(s) by this creator` : "not provided"}`}
       </pre>
       {c.risks.length > 0 && (
         <div className="mt-1">

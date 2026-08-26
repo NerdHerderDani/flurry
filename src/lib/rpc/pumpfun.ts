@@ -39,13 +39,17 @@ interface TrackedMint extends TrackedMintMeta {
 export interface PumpFunProviderCallbacks {
   onStatus?: (status: FeedStatus) => void;
   onThrottle?: (throttled: boolean) => void;
+  /** SLOW MODE budget override (public endpoints); defaults to full speed. */
+  rps?: number;
+  /** Passed through to the feed — 1 skips WS churn on endpoints known to lack it. */
+  maxWsFailures?: number;
 }
 
 export function createPumpFunProvider(
   rpcUrl: string,
   callbacks: PumpFunProviderCallbacks = {},
 ): ChainProvider {
-  const limiter = new TokenBucket(RATE_LIMIT_RPS);
+  const limiter = new TokenBucket(callbacks.rps ?? RATE_LIMIT_RPS);
   const transport = new RpcTransport(rpcUrl, limiter, callbacks.onThrottle);
   const priceCache = new SolUsdPriceCache();
 
@@ -78,6 +82,7 @@ export function createPumpFunProvider(
   // about launches even when nothing is currently subscribed to the feed.
   const feed = new PumpFunLaunchFeed(rpcUrl, transport, {
     onStatus: (s) => callbacks.onStatus?.(s),
+    ...(callbacks.maxWsFailures !== undefined && { maxWsFailures: callbacks.maxWsFailures }),
     onNotification: (n) => {
       if (n.err) return; // failed tx: the whole thing (incl. the create) reverted
       const event = decodeCreateEventFromLogs(n.logs);
