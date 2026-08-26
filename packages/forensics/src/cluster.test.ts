@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clusterByFunding, linkedWalletCount } from "./cluster";
-import type { SlotActivity } from "../schemas";
+import { clusterByFunding, linkedWalletCount } from "./cluster.js";
+import type { SlotActivity } from "./schemas.js";
 
 const W = (n: string) => n.padEnd(32, "x");
 const act = (wallet: string, fundedBy?: string): SlotActivity =>

@@ -1,0 +1,42 @@
+{
+  "name": "@flurry/forensics",
+  "version": "0.1.0",
+  "description": "Token-launch forensics engine: bundle detection, wallet clustering, risk scoring, plain-English verdicts. Pure and deterministic — the same engine that powers FLURRY 慌.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "solana",
+    "forensics",
+    "rug-detection",
+    "bundle-detection",
+    "wallet-clustering",
+    "risk-scoring",
+    "token-launch"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NerdHerderDani/flurry.git",
+    "directory": "packages/forensics"
+  },
+  "dependencies": {
+    "zod": "^3.24.0"
+  }
+}

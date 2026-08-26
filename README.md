@@ -118,6 +118,14 @@ enrichment rules:
 - Solana only; Robinhood Chain rows are unaffected. Quota exhaustion shows an honest
   error state instead of stale or guessed data.
 
+## Embed the engine
+
+The forensics is open: run it yourself, or embed it. The bundle/cluster/risk/
+verdict layer ships as [`@flurry/forensics`](packages/forensics/README.md) —
+pure functions, zod schema contract, `ChainProvider` seam, zero deps beyond
+zod. This app is consumer #1 of the package, so the published surface is the
+same engine you see here. Integration guide: [ENGINE.md](ENGINE.md).
+
 ## Coverage plan
 
 Coverage is **program-oriented, not brand-oriented**: most launchpads are skins on
