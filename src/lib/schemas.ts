@@ -111,6 +111,25 @@ export const GraduationEntry = z
   });
 export type GraduationEntry = z.infer<typeof GraduationEntry>;
 
+/**
+ * Optional third-party cross-check section of dossier evidence. Numbers and
+ * booleans ONLY (plus the fixed source literal) — no RugCheck-authored free
+ * text may ever cross the AI prompt boundary. Mirrored by hand in
+ * bridge/flurry-bridge.mjs validation; keep the two in sync.
+ */
+export const RugcheckEvidenceSection = z.object({
+  source: z.literal("rugcheck.xyz"),
+  rugged: z.boolean(),
+  riskScoreNormalised: z.number().int().min(0).max(100),
+  riskCount: z.number().int().nonnegative(),
+  dangerRisks: z.number().int().nonnegative(),
+  warnRisks: z.number().int().nonnegative(),
+  lpLockedPct: z.number().min(0).max(100).nullable(),
+  insiderNetworkCount: z.number().int().nonnegative(),
+  insiderNetworkMaxSize: z.number().int().nonnegative(),
+});
+export type RugcheckEvidenceSection = z.infer<typeof RugcheckEvidenceSection>;
+
 /** Structured evidence handed to the AI dossier. Nothing else crosses that boundary. */
 export const DossierEvidence = z.object({
   chain: Chain,
@@ -124,5 +143,6 @@ export const DossierEvidence = z.object({
   deployerPriorLaunches: z.number().int().nonnegative(),
   deployerPriorRugs: z.number().int().nonnegative(),
   devHoldsPct: z.number().min(0).max(100),
+  rugcheck: RugcheckEvidenceSection.optional(),
 });
 export type DossierEvidence = z.infer<typeof DossierEvidence>;

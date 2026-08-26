@@ -9,14 +9,17 @@ Flurry is a fully static, client-side application. There is no backend.
 - The Anthropic key is sent **directly from the user's browser to `api.anthropic.com`**
   using the `anthropic-dangerous-direct-browser-access` header. This is acceptable because
   the key is the user's own; Flurry never proxies, logs, or stores it.
-- Any PR that attaches persistence to `apiKeyAtom` will be rejected. This is a review gate,
-  not a suggestion.
+- The optional RugCheck key is sent **directly from the user's browser to
+  `api.rugcheck.xyz`** (CORS-open, verified 2026-08-25) and nowhere else. Same rules.
+- Any PR that attaches persistence to `apiKeyAtom` or `rugcheckKeyAtom` will be rejected.
+  This is a review gate, not a suggestion.
 
 ## Data flow
 
 user browser ── RPC reads ──> user-supplied Solana RPC, or user-supplied Robinhood Chain RPC
 user browser ── dossier calls (BYOK) ──> api.anthropic.com (user's key)
 user browser ── dossier calls (DESKTOP BRIDGE) ──> http://localhost:PORT (same machine) ──> claude CLI (subscription) or api.anthropic.com (ANTHROPIC_API_KEY from the bridge's own shell env)
+user browser ── token cross-check (optional BYOK) ──> api.rugcheck.xyz (user's RugCheck/FluxRPC key; only fires on row expansion with a key set)
 user browser ── SOL/USD price ──> lite-api.jup.ag (public, keyless, no data sent but the read itself)
 user browser ── ETH/USD price ──> api.coingecko.com (public, keyless, same trust model)
 user browser ── nothing ──> us. No telemetry, no analytics, no server.
@@ -45,7 +48,10 @@ safe to expose to a browser tab that could, in principle, be running alongside a
    validated fields. There is no code path from an HTTP request body to free text handed
    to Claude. A hostile page that somehow reached the port can get a token forensics
    verdict; it cannot get general-purpose Claude access. This is enforced by tests, not
-   just described — see `bridge/flurry-bridge.test.js`.
+   just described — see `bridge/flurry-bridge.test.js`. The optional `rugcheck` evidence
+   section keeps the same wall: numbers and booleans plus one fixed source literal —
+   RugCheck-authored strings (risk names/descriptions) render in the UI but never enter
+   an AI prompt.
 3. **No persistence, no logging.** The bridge keeps no database and writes no evidence,
    prompts, or verdicts to disk or console — only a one-line
    `METHOD /path STATUS Ns` per request, same spirit as this app's zero-telemetry stance.

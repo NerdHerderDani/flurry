@@ -1,0 +1,23 @@
+{
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "tokenType": "",
+  "risks": [
+    {
+      "name": "Single holder ownership",
+      "value": "21.24%",
+      "description": "One user holds a large amount of the token supply",
+      "score": 2123,
+      "level": "warn"
+    },
+    {
+      "name": "Mutable metadata",
+      "value": "",
+      "description": "Token metadata can be changed by the owner",
+      "score": 100,
+      "level": "warn"
+    }
+  ],
+  "score": 2224,
+  "score_normalised": 30,
+  "lpLockedPct": 0.04229672931883238
+}
