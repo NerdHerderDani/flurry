@@ -1,5 +1,4 @@
-import { explainRisk, type ExplainInput } from "../../lib/forensics/explain";
-import type { RiskTier } from "../../lib/forensics/risk";
+import { explainRisk, type ExplainInput, type RiskTier } from "@flurry/forensics";
 import { useRugcheck } from "../../lib/rugcheck/useRugcheck";
 import { Term } from "../../components/terminal/Term";
 import type { Chain } from "../../lib/schemas";

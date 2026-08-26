@@ -1,5 +1,5 @@
-import type { ChainProvider } from "./provider";
-import { Launch, GraduationEntry, type SlotActivity, type LaunchProgram } from "../schemas";
+import type { ChainProvider } from "./provider.js";
+import { Launch, GraduationEntry, type SlotActivity, type LaunchProgram } from "./schemas.js";
 
 /** Deterministic-enough demo feed so the UI is fully exercisable with zero keys. */
 const SYLL = [

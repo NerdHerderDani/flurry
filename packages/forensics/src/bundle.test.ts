@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { detectBundle } from "./bundle";
-import type { SlotActivity } from "../schemas";
+import { detectBundle } from "./bundle.js";
+import type { SlotActivity } from "./schemas.js";
 
 const W = (n: number) => `wallet_${n}`.padEnd(32, "x");
 const act = (wallet: string, slot: number, supplyPct: number, fundedBy?: string): SlotActivity =>

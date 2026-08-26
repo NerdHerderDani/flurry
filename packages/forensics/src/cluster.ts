@@ -1,4 +1,4 @@
-import type { SlotActivity } from "../schemas";
+import type { SlotActivity } from "./schemas.js";
 
 export interface FundingCluster {
   funder: string;

@@ -6,15 +6,16 @@
   "description": "Retro terminal for Solana token launch forensics: bundle detection, wallet clustering, graduation tracking. Fully static, BYOK, zero custody.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run build:engine && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src e2e bridge",
+    "typecheck": "npm run build:engine && tsc --noEmit",
+    "lint": "eslint src e2e bridge packages/forensics/src packages/forensics/test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "npm run build:engine && vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "build:engine": "npm run build --workspace @flurry/forensics"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
@@ -23,7 +24,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "viem": "^2.55.19",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@flurry/forensics": "0.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -41,5 +43,8 @@
     "typescript-eslint": "^8.18.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.8"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }
