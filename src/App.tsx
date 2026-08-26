@@ -7,9 +7,11 @@ import { Scanner } from "./features/scanner/Scanner";
 import { Graduation } from "./features/graduation/Graduation";
 import { Config } from "./features/config/Config";
 import { Support } from "./features/support/Support";
+import { DensityBar } from "./components/terminal/DensityBar";
 import {
   apiKeyAtom,
   chainAtom,
+  crtIntensityAtom,
   deepLinkAtom,
   feedStatusAtom,
   modeAtom,
@@ -39,6 +41,20 @@ export function App() {
   const throttled = useAtomValue(rpcThrottledAtom);
   const [deepLink, setDeepLink] = useAtom(deepLinkAtom);
   const setChain = useSetAtom(chainAtom);
+  const crtIntensity = useAtomValue(crtIntensityAtom);
+  // One ticking clock for the density bar, so the sparkline's newest bucket
+  // and the per-minute count stay honest without each row re-rendering.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  // A2 — intensity is a root attribute so the CSS custom properties cascade
+  // to the fixed-position scanline/vignette layers too.
+  useEffect(() => {
+    document.documentElement.dataset["crt"] = crtIntensity;
+  }, [crtIntensity]);
 
   // Deep link: parsed once at boot, validated before any use. A valid token
   // link selects its chain and lands on Graduation, where the mint resolves
@@ -55,12 +71,12 @@ export function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <div className="scanlines" />
+      <div className="scanlines scanlines-drift" />
       <div className="vignette" />
       <div className="crt relative z-10 mx-auto max-w-5xl px-4 py-5">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
           <h1
-            className="text-4xl leading-none"
+            className="display text-4xl leading-none"
             style={{ textShadow: "0 0 12px #5bff8a88, 0 0 40px #5bff8a33" }}
           >
             FLURRY{" "}
@@ -92,6 +108,7 @@ export function App() {
         ) : (
           <>
             <TabBar tab={tab} onTab={setTab} />
+            <DensityBar now={now} />
             {deepLink.kind === "error" && (
               <div className="mb-2 text-xs" style={{ color: "var(--flurry-red)" }}>
                 shared link error: {deepLink.message}{" "}

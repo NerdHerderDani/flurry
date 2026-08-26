@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useQueryClient } from "@tanstack/react-query";
 import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import { clusterByFunding, detectBundle, linkedWalletCount, scoreRisk } from "@flurry/forensics";
@@ -12,13 +12,19 @@ import { RugcheckPanel } from "./RugcheckPanel";
 import { LocalVerdictBlock } from "./LocalVerdictBlock";
 import { Term } from "../../components/terminal/Term";
 import { buildDeepLink } from "../../lib/deepLink";
+import { lineageGraph } from "../../lib/ascii";
+import { playKeyclick } from "../../lib/sfx";
 import {
   apiKeyAtom,
   bridgePortAtom,
+  criticalCountAtom,
   feedPausedAtom,
+  launchTimestampsAtom,
   modeAtom,
   rpcThrottledAtom,
   rugcheckKeyAtom,
+  scannedCountAtom,
+  sfxEnabledAtom,
 } from "../../state/atoms";
 import type { DossierEvidence, Launch } from "../../lib/schemas";
 
@@ -32,6 +38,8 @@ const riskColor: Record<RiskTier, string> = {
 const short = (a: string) => `${a.slice(0, 8)}...${a.slice(-4)}`;
 
 interface Row extends Launch {
+  /** True only for the first render after arrival — drives the one-shot enter animation. */
+  fresh: boolean;
   open: boolean;
   dossier: string | null;
   dossierLoading: boolean;
@@ -55,6 +63,17 @@ export function Scanner() {
   const bridgePort = useAtomValue(bridgePortAtom);
   const throttled = useAtomValue(rpcThrottledAtom);
   const rugcheckKey = useAtomValue(rugcheckKeyAtom);
+  const sfxEnabled = useAtomValue(sfxEnabledAtom);
+  const setLaunchTimestamps = useSetAtom(launchTimestampsAtom);
+  const setScannedCount = useSetAtom(scannedCountAtom);
+  const setCriticalCount = useSetAtom(criticalCountAtom);
+  const sfxRef = useRef(sfxEnabled);
+  useEffect(() => {
+    sfxRef.current = sfxEnabled;
+  }, [sfxEnabled]);
+  // CRITICAL rows already counted/announced, so a re-render never double-counts
+  // or re-clicks. Session-scoped, same lifetime as the counters themselves.
+  const announcedRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const provider = useChainProvider();
 
@@ -109,6 +128,7 @@ export function Scanner() {
         const nextRows: Row[] = [
           {
             ...l,
+            fresh: true,
             open: false,
             dossier: null,
             dossierLoading: false,
@@ -122,6 +142,9 @@ export function Scanner() {
         const stillVisible = new Set(nextRows.map((row) => row.mint));
         const evicted = rs.filter((row) => !stillVisible.has(row.mint)).map((row) => row.mint);
         rowsRef.current = nextRows;
+        // A3 — density: session launch timestamps (bounded; the sparkline
+        // window is 20 minutes, so older samples can't affect anything).
+        setLaunchTimestamps((ts) => [...ts, Date.now()].slice(-2000));
         if (evicted.length) scanQueueRef.current?.dropAll(evicted);
         if (provider.loadForensics) scanQueueRef.current?.enqueue(l.mint);
         return nextRows;
@@ -129,6 +152,38 @@ export function Scanner() {
     });
     return unsub;
   }, [provider, paused]);
+
+  // The enter animation is one-shot: clear `fresh` once it has played so a
+  // later re-render (scan resolving, RugCheck arriving) never replays it.
+  useEffect(() => {
+    if (!rows.some((r) => r.fresh)) return;
+    const t = setTimeout(() => {
+      setRows((rs) => {
+        const next = rs.map((r) => (r.fresh ? { ...r, fresh: false } : r));
+        rowsRef.current = next;
+        return next;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [rows]);
+
+  // A3/A4 — when a row resolves to a real tier, count it and (if the user
+  // opted in) click once for CRITICAL. Keyed on the mint so it fires exactly
+  // once per row, never on load and never for non-CRITICAL events.
+  useEffect(() => {
+    for (const r of rows) {
+      if (r.scanState !== "scanned" || announcedRef.current.has(r.mint)) continue;
+      announcedRef.current.add(r.mint);
+      setScannedCount((n) => n + 1);
+      const { tier } = analyze(r);
+      if (tier === "CRITICAL") {
+        setCriticalCount((n) => n + 1);
+        if (sfxRef.current) playKeyclick();
+      }
+    }
+    // Intentionally keyed on `rows` only: the setters are stable and `analyze`
+    // is a pure read of the row it's given.
+  }, [rows]);
 
   const toggle = (r: Row) => {
     const opening = !r.open;
@@ -248,7 +303,11 @@ export function Scanner() {
           const { bundle, clusters, linked, tier } = analyze(r);
           const ageSec = Math.floor((Date.now() - r.launchedAt) / 1000);
           return (
-            <div key={r.mint} style={{ borderBottom: "1px solid var(--flurry-dim)" }}>
+            <div
+              key={r.mint}
+              className={r.fresh ? "row-enter" : undefined}
+              style={{ borderBottom: "1px solid var(--flurry-dim)" }}
+            >
               <div
                 onClick={() => toggle(r)}
                 className="grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-x-2 px-2 py-3 text-sm hover:bg-white/5 sm:grid-cols-[70px_90px_1fr_90px_60px_80px] sm:py-1"
@@ -289,6 +348,7 @@ export function Scanner() {
                 </span>
                 {r.scanState === "scanned" ? (
                   <span
+                    className={announcedRef.current.has(r.mint) ? undefined : "resolve-flicker"}
                     style={{ color: riskColor[tier], textShadow: `0 0 8px ${riskColor[tier]}` }}
                   >
                     {tier}
@@ -346,6 +406,19 @@ export function Scanner() {
                     <Term term="dev holds">dev holds</Term>
                     {`     ${r.devHoldsPct}% of supply`}
                   </pre>
+                  {/* A1 — funding lineage as a text graph: legible at 375px,
+                      selectable, and it reads as terminal output. */}
+                  {clusters.length > 0 && r.scanState === "scanned" && (
+                    <pre
+                      className="mt-2 overflow-x-auto p-2 text-xs"
+                      style={{
+                        color: "var(--flurry-mid)",
+                        border: "1px dashed var(--flurry-dim)",
+                      }}
+                    >
+                      {`funding lineage\n${lineageGraph(clusters).join("\n")}`}
+                    </pre>
+                  )}
                   {/* Strict enrichment: without a RugCheck key this renders nothing at all. */}
                   {r.chain === "solana" && rugcheckKey.trim().length > 0 && (
                     <RugcheckPanel mint={r.mint} chain={r.chain} expanded={r.open} />

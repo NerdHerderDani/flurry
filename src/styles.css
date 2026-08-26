@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 :root {
   --flurry-bg: #040805;
@@ -9,6 +10,20 @@
   --flurry-amber: #ffb84d;
   --flurry-red: #ff5566;
   --flurry-cyan: #5be8ff;
+  /* Display face for headers + kanji; data stays in the mono for legibility. */
+  --flurry-display: "DotGothic16", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  /* CRT INTENSITY knobs — :root values are the pre-existing look, so the
+     default experience is byte-identical until a user opts into "med". */
+  --crt-vignette: 0.55;
+  --crt-scanline: 0.22;
+  --crt-bloom: 0.27;
+}
+
+/* Opt-in only (Config → CRT INTENSITY). Never the default. */
+:root[data-crt="med"] {
+  --crt-vignette: 0.72;
+  --crt-scanline: 0.3;
+  --crt-bloom: 0.5;
 }
 
 body {
@@ -27,6 +42,45 @@ input::placeholder {
 
 .crt {
   animation: flicker 4s infinite;
+}
+
+/* Display face, used only where the brief asks: headers and the kanji. */
+.display {
+  font-family: var(--flurry-display);
+}
+
+/* A1 — earned motion. A new feed row types itself in (clip reveal) rather
+   than popping; one pass, then it is a normal row. */
+.row-enter {
+  animation: row-type 260ms steps(24, end) 1;
+}
+@keyframes row-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* A1 — a risk cell flickers exactly once as it resolves SCAN -> tier. Reuses
+   the CRT flicker vocabulary instead of inventing a second one. */
+.resolve-flicker {
+  animation: flicker 260ms steps(3, end) 2;
+}
+
+/* A2 — scanlines drift slowly. Amplitude is one scanline period, so it reads
+   as a CRT settling rather than as movement. */
+.scanlines-drift {
+  animation: scanline-drift 8s linear infinite;
+}
+@keyframes scanline-drift {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 3px;
+  }
 }
 .cursor {
   animation: blink 1.1s step-end infinite;
@@ -55,9 +109,13 @@ input::placeholder {
 }
 @media (prefers-reduced-motion: reduce) {
   .crt,
-  .cursor {
+  .cursor,
+  .row-enter,
+  .resolve-flicker,
+  .scanlines-drift {
     animation: none;
   }
+  /* Reduced motion gets instant state changes — never less information. */
 }
 
 .scanlines {
@@ -65,12 +123,20 @@ input::placeholder {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, var(--crt-scanline)) 0 1px,
+    transparent 1px 3px
+  );
 }
 .vignette {
   pointer-events: none;
   position: fixed;
   inset: 0;
   z-index: 51;
-  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, var(--crt-vignette)) 100%
+  );
 }
