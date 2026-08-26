@@ -4,6 +4,7 @@ import {
   apiKeyAtom,
   bridgePortAtom,
   chainAtom,
+  demoModeAtom,
   modeAtom,
   rpcUrlAtom,
   rugcheckKeyAtom,
@@ -44,6 +45,7 @@ export function Config() {
   const [chain, setChain] = useAtom(chainAtom);
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
   const [rugcheckKey, setRugcheckKey] = useAtom(rugcheckKeyAtom);
+  const [demoMode, setDemoMode] = useAtom(demoModeAtom);
   const [bridgePort, setBridgePort] = useAtom(bridgePortAtom);
   const [bridgeHealth, setBridgeHealth] = useState<HealthResult | null>(null);
   const [bridgeReachable, setBridgeReachable] = useState(false);
@@ -274,18 +276,41 @@ export function Config() {
           </p>
         )}
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
-          expected shape: <span style={{ color: "var(--flurry-green)" }}>{rpcCopy.example}</span>{" "}
-          (or any {chain === "solana" ? "Solana" : "Robinhood Chain"} RPC provider&apos;s full URL).
-          no key yet? get a free one at{" "}
+          <span style={{ color: "var(--flurry-green)" }}>full speed:</span> paste a free key from{" "}
           <a href={rpcCopy.providerUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
             {rpcCopy.providerName}
-          </a>
-          .
+          </a>{" "}
+          — expected shape: <span style={{ color: "var(--flurry-green)" }}>{rpcCopy.example}</span>{" "}
+          (or any {chain === "solana" ? "Solana" : "Robinhood Chain"} RPC provider&apos;s full URL).{" "}
+          {chain === "robinhood"
+            ? "left blank, flurry runs on Robinhood's public endpoint in SLOW MODE — live feed on, forensics on, conservative request budget."
+            : "left blank, flurry shows the demo feed: no public Solana endpoint accepts browser traffic (every free one tested blocks it — verified, see DECODING.md), so live Solana data genuinely needs your own free key."}
         </p>
         <p className="mt-1 text-xs" style={{ color: "var(--flurry-amber)" }}>
           {chain === "solana"
-            ? "pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug history and 1h volume/holders can't be verified from raw RPC — always shown as unverified. leave blank for the demo feed."
-            : "pools.trade live feed, bundle checks, and deployer history read from this endpoint. rug history, 1h volume/holders, and funding lineage can't be verified from raw RPC — always shown as unverified. pools.trade has no bonding curve, so every token shows GRADUATED at listing. leave blank for the demo feed."}
+            ? "pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug history and 1h volume/holders can't be verified from raw RPC — always shown as unverified."
+            : "pools.trade live feed, bundle checks, and deployer history read from this endpoint. rug history, 1h volume/holders, and funding lineage can't be verified from raw RPC — always shown as unverified. pools.trade has no bonding curve, so every token shows GRADUATED at listing."}
+        </p>
+      </div>
+      <div className="mb-4">
+        <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          DEMO FEED
+        </div>
+        <button
+          onClick={() => setDemoMode((d) => !d)}
+          className="px-3 py-1 text-xs"
+          style={{
+            color: demoMode ? "var(--flurry-bg)" : "var(--flurry-green)",
+            background: demoMode ? "var(--flurry-amber)" : "transparent",
+            border: "1px solid var(--flurry-dim)",
+            cursor: "pointer",
+            minHeight: 44,
+          }}
+        >
+          {demoMode ? "DEMO FEED ON — synthetic data" : "SWITCH TO DEMO FEED"}
+        </button>
+        <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          synthetic launches for screenshots or offline use. clearly not live data.
         </p>
       </div>
       <div className="mb-4">
