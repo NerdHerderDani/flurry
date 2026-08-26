@@ -6,6 +6,7 @@ import {
   chainAtom,
   modeAtom,
   rpcUrlAtom,
+  rugcheckKeyAtom,
   type ConnectionMode,
 } from "../../state/atoms";
 import type { Chain } from "../../lib/schemas";
@@ -42,6 +43,7 @@ export function Config() {
   const [apiKey, setApiKey] = useAtom(apiKeyAtom);
   const [chain, setChain] = useAtom(chainAtom);
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
+  const [rugcheckKey, setRugcheckKey] = useAtom(rugcheckKeyAtom);
   const [bridgePort, setBridgePort] = useAtom(bridgePortAtom);
   const [bridgeHealth, setBridgeHealth] = useState<HealthResult | null>(null);
   const [bridgeReachable, setBridgeReachable] = useState(false);
@@ -284,6 +286,44 @@ export function Config() {
           {chain === "solana"
             ? "pump.fun live feed, bundle checks, and graduation tracking read from this endpoint. rug history and 1h volume/holders can't be verified from raw RPC — always shown as unverified. leave blank for the demo feed."
             : "pools.trade live feed, bundle checks, and deployer history read from this endpoint. rug history, 1h volume/holders, and funding lineage can't be verified from raw RPC — always shown as unverified. pools.trade has no bonding curve, so every token shows GRADUATED at listing. leave blank for the demo feed."}
+        </p>
+      </div>
+      <div className="mb-4">
+        <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          RUGCHECK API KEY{" "}
+          <span style={{ color: "var(--flurry-dim)" }}>(OPTIONAL · SOLANA ONLY)</span>
+        </div>
+        <input
+          type="password"
+          value={rugcheckKey}
+          onChange={(e) => setRugcheckKey(e.target.value)}
+          placeholder="leave blank to disable the cross-check"
+          autoComplete="off"
+          className="w-full px-2 py-1 text-sm outline-none"
+          style={{
+            background: "var(--flurry-panel)",
+            border: "1px solid var(--flurry-dim)",
+            color: "var(--flurry-green)",
+          }}
+        />
+        <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          with a key, expanded Solana rows gain a{" "}
+          <span style={{ color: "var(--flurry-cyan)" }}>CROSS-CHECK</span> panel (rugged status, LP
+          locks, insider networks, their risk score) attributed to rugcheck.xyz — a second opinion
+          that never changes Flurry&apos;s own RISK verdict. without a key, nothing changes. sent
+          directly from your browser to api.rugcheck.xyz, held in memory for this session only.
+          create the key under the{" "}
+          <span style={{ color: "var(--flurry-green)" }}>RugCheck section</span> of your{" "}
+          <a
+            href="https://fluxrpc.com/docs/rugcheck/getting-started"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={linkStyle}
+          >
+            fluxrpc.com
+          </a>{" "}
+          dashboard — an RPC-product key is rejected. ignored on Robinhood Chain — RugCheck covers
+          Solana only.
         </p>
       </div>
     </div>

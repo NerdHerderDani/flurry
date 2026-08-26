@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
+import { useQueryClient } from "@tanstack/react-query";
 import { useChainProvider } from "../../lib/rpc/useChainProvider";
 import { detectBundle } from "../../lib/forensics/bundle";
 import { clusterByFunding, linkedWalletCount } from "../../lib/forensics/cluster";
@@ -7,12 +8,15 @@ import { scoreRisk, type RiskTier } from "../../lib/forensics/risk";
 import { ScanQueue, scanRow, type ScanState } from "../../lib/forensics/scan";
 import { runDossier } from "../../lib/ai/anthropic";
 import { BridgeNoBackendError, runDossierViaBridge } from "../../lib/ai/bridge";
+import { toEvidenceSection, type RugcheckCrossCheck } from "../../lib/rugcheck/crossCheck";
+import { RugcheckPanel } from "./RugcheckPanel";
 import {
   apiKeyAtom,
   bridgePortAtom,
   feedPausedAtom,
   modeAtom,
   rpcThrottledAtom,
+  rugcheckKeyAtom,
 } from "../../state/atoms";
 import type { DossierEvidence, Launch } from "../../lib/schemas";
 
@@ -40,6 +44,8 @@ export function Scanner() {
   const mode = useAtomValue(modeAtom);
   const bridgePort = useAtomValue(bridgePortAtom);
   const throttled = useAtomValue(rpcThrottledAtom);
+  const rugcheckKey = useAtomValue(rugcheckKeyAtom);
+  const queryClient = useQueryClient();
   const provider = useChainProvider();
 
   // Mirrors `rows` for use inside scanRow/ScanQueue callbacks that need the
@@ -149,6 +155,13 @@ export function Scanner() {
       return;
     }
     const { bundle, linked } = analyze(r);
+    // Already-fetched cross-check joins the evidence as a source-labeled,
+    // numbers-only section. Never fetched here — the dossier uses what the
+    // panel already loaded, or nothing.
+    const crossCheck =
+      r.chain === "solana" && rugcheckKey.trim()
+        ? queryClient.getQueryData<RugcheckCrossCheck>(["rugcheck", r.mint])
+        : undefined;
     const evidence: DossierEvidence = {
       chain: r.chain,
       ticker: r.ticker,
@@ -161,6 +174,7 @@ export function Scanner() {
       deployerPriorLaunches: r.deployerPriorLaunches,
       deployerPriorRugs: r.deployerPriorRugs,
       devHoldsPct: r.devHoldsPct,
+      ...(crossCheck && { rugcheck: toEvidenceSection(crossCheck) }),
     };
     patch(r.mint, { dossierLoading: true, dossierError: null });
     try {
@@ -283,6 +297,10 @@ first block   ${bundle.deploySlotSupplyPct}% of supply acquired${bundle.deploySl
 wallet links  ${linked} wallets share funding lineage${clusters[0] ? `\nfunder        ${short(clusters[0].funder)} (${clusters[0].wallets.length}-wallet cluster)` : ""}
 dev holds     ${r.devHoldsPct}% of supply`}
                   </pre>
+                  {/* Strict enrichment: without a RugCheck key this renders nothing at all. */}
+                  {r.chain === "solana" && rugcheckKey.trim().length > 0 && (
+                    <RugcheckPanel mint={r.mint} chain={r.chain} expanded={r.open} />
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

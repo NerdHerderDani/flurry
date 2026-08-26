@@ -11,6 +11,8 @@ export type ConnectionMode = "byok" | "desktop";
 export const modeAtom = atom<ConnectionMode>("byok");
 export const apiKeyAtom = atom<string>("");
 export const rpcUrlAtom = atom<string>("");
+/** Optional RugCheck/FluxRPC key — same invariant as apiKeyAtom: memory only. */
+export const rugcheckKeyAtom = atom<string>("");
 export const feedPausedAtom = atom<boolean>(false);
 export const bridgePortAtom = atom<number>(4114);
 export const chainAtom = atom<Chain>("solana");

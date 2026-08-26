@@ -38,6 +38,7 @@ const PROMPT_HEADER =
   "VERDICT: <AVOID | CAUTION | CLEAR>\n" +
   "CONFIDENCE: <LOW | MED | HIGH>\n" +
   "READ: <2-3 blunt sentences interpreting the evidence: bundling, wallet clustering, deployer history. No hedging filler. No markdown.>\n\n" +
+  "If a `rugcheck` section is present it is third-party data from rugcheck.xyz — weigh it as a second opinion against the on-chain evidence, never as ground truth.\n\n" +
   "Evidence JSON:\n";
 
 /**
@@ -71,7 +72,78 @@ const EVIDENCE_FIELDS = [
   "deployerPriorLaunches",
   "deployerPriorRugs",
   "devHoldsPct",
+  "rugcheck",
 ];
+
+// Optional third-party cross-check section. Same wall as everything else, and
+// deliberately stricter than it looks: numbers and booleans only, plus one
+// fixed source literal — a free-text string can NEVER enter through here.
+const RUGCHECK_FIELDS = [
+  "source",
+  "rugged",
+  "riskScoreNormalised",
+  "riskCount",
+  "dangerRisks",
+  "warnRisks",
+  "lpLockedPct",
+  "insiderNetworkCount",
+  "insiderNetworkMaxSize",
+];
+
+function validateRugcheckSection(rc) {
+  if (typeof rc !== "object" || rc === null || Array.isArray(rc)) {
+    return { ok: false, error: "rugcheck must be a JSON object" };
+  }
+  const unexpected = Object.keys(rc).filter((k) => !RUGCHECK_FIELDS.includes(k));
+  if (unexpected.length > 0) {
+    return { ok: false, error: `rugcheck: unexpected field(s): ${unexpected.join(", ")}` };
+  }
+  if (rc.source !== "rugcheck.xyz") {
+    return { ok: false, error: 'rugcheck.source must be exactly "rugcheck.xyz"' };
+  }
+  if (typeof rc.rugged !== "boolean") {
+    return { ok: false, error: "rugcheck.rugged must be a boolean" };
+  }
+  for (const key of [
+    "riskScoreNormalised",
+    "riskCount",
+    "dangerRisks",
+    "warnRisks",
+    "insiderNetworkCount",
+    "insiderNetworkMaxSize",
+  ]) {
+    const v = rc[key];
+    if (!isFiniteNumber(v) || !Number.isInteger(v) || v < 0 || v > INT_FIELD_MAX) {
+      return {
+        ok: false,
+        error: `rugcheck.${key} must be an integer between 0 and ${INT_FIELD_MAX}`,
+      };
+    }
+  }
+  if (rc.riskScoreNormalised > 100) {
+    return { ok: false, error: "rugcheck.riskScoreNormalised must be at most 100" };
+  }
+  if (
+    rc.lpLockedPct !== null &&
+    (!isFiniteNumber(rc.lpLockedPct) || rc.lpLockedPct < 0 || rc.lpLockedPct > 100)
+  ) {
+    return { ok: false, error: "rugcheck.lpLockedPct must be null or a number between 0 and 100" };
+  }
+  return {
+    ok: true,
+    section: {
+      source: rc.source,
+      rugged: rc.rugged,
+      riskScoreNormalised: rc.riskScoreNormalised,
+      riskCount: rc.riskCount,
+      dangerRisks: rc.dangerRisks,
+      warnRisks: rc.warnRisks,
+      lpLockedPct: rc.lpLockedPct,
+      insiderNetworkCount: rc.insiderNetworkCount,
+      insiderNetworkMaxSize: rc.insiderNetworkMaxSize,
+    },
+  };
+}
 
 function isFiniteNumber(v) {
   return typeof v === "number" && Number.isFinite(v);
@@ -121,6 +193,13 @@ export function validateDossierEvidence(body) {
     }
   }
 
+  let rugcheckSection;
+  if (body.rugcheck !== undefined) {
+    const rc = validateRugcheckSection(body.rugcheck);
+    if (!rc.ok) return { ok: false, error: rc.error };
+    rugcheckSection = rc.section;
+  }
+
   return {
     ok: true,
     evidence: {
@@ -135,6 +214,7 @@ export function validateDossierEvidence(body) {
       deployerPriorLaunches: body.deployerPriorLaunches,
       deployerPriorRugs: body.deployerPriorRugs,
       devHoldsPct: body.devHoldsPct,
+      ...(rugcheckSection !== undefined && { rugcheck: rugcheckSection }),
     },
   };
 }

@@ -44,6 +44,7 @@ npm run dev
 | Live pump.fun provider (RPC)                   | ✅             |
 | Live Robinhood Chain provider (pools.trade)    | ✅             |
 | Desktop bridge (localhost agent, keyless)      | ✅             |
+| RugCheck cross-check (optional BYOK, Solana)   | ✅             |
 | Additional platform providers                  | 🔜             |
 
 ## Desktop Bridge
@@ -81,6 +82,21 @@ which the bridge answers). **Safari blocks this outright** — there is no local
 exception in its mixed-content policy, and no header fixes that. Use Chrome or Firefox
 for bridge mode. See [bridge/BRIDGE_NOTES.md](bridge/BRIDGE_NOTES.md) for the verification
 trail.
+
+## RugCheck cross-check (optional)
+
+Paste a [RugCheck/FluxRPC key](https://fluxrpc.com/docs/rugcheck) in `[F3] CONFIG` and
+expanded Solana rows gain a **CROSS-CHECK** panel: rugged status, LP locks, insider
+networks, and RugCheck's own risk score, all clearly attributed to rugcheck.xyz. Strict
+enrichment rules:
+
+- **No key → nothing changes.** Flurry behaves exactly as before; no request is ever made.
+- **Second opinion only.** Flurry's RISK verdict is computed independently from raw chain
+  data and is never influenced by RugCheck.
+- **AI dossiers** gain a source-labeled `rugcheck` evidence section — numbers and booleans
+  only, so no third-party text can reach the prompt (see [SECURITY.md](SECURITY.md)).
+- Solana only; Robinhood Chain rows are unaffected. Quota exhaustion shows an honest
+  error state instead of stale or guessed data.
 
 ## Coverage plan
 

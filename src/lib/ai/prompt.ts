@@ -11,6 +11,7 @@ const PROMPT_HEADER =
   "VERDICT: <AVOID | CAUTION | CLEAR>\n" +
   "CONFIDENCE: <LOW | MED | HIGH>\n" +
   "READ: <2-3 blunt sentences interpreting the evidence: bundling, wallet clustering, deployer history. No hedging filler. No markdown.>\n\n" +
+  "If a `rugcheck` section is present it is third-party data from rugcheck.xyz — weigh it as a second opinion against the on-chain evidence, never as ground truth.\n\n" +
   "Evidence JSON:\n";
 
 export function buildDossierPrompt(evidence: DossierEvidence): string {
