@@ -1,0 +1,47 @@
+/* DotGothic16 — Fontworks Inc., SIL Open Font License 1.1 (full text in
+   public/fonts/DotGothic16-OFL.txt).
+
+   Self-hosted on purpose: loading this from fonts.gstatic.com at runtime would
+   add a third-party request to an app whose whole claim is "no telemetry,
+   nothing sent anywhere but the providers you configure".
+
+   Only 3 of the font's 123 unicode-range subsets ship — the latin block plus
+   the two Japanese blocks holding 慌 (U+614C, Flurry) and 霜 (U+971C, Perma) —
+   which is 27 KB instead of ~2 MB. If a header ever gains another CJK glyph,
+   add its block here or it will silently fall back to a system font. */
+@font-face {
+  font-family: "DotGothic16";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dotgothic16-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DotGothic16";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dotgothic16-jp-614c.woff2") format("woff2");
+  unicode-range:
+    U+221e, U+2514, U+51f9, U+5270, U+5449, U+5824, U+59a5, U+5a29, U+5d07, U+5e16, U+60e3, U+614c,
+    U+6276, U+643e, U+64ab, U+6562, U+6681, U+670b, U+6734, U+67af, U+6a3d, U+6b05, U+6dc0, U+6e4a,
+    U+7259, U+732a, U+7409, U+78a7, U+7a6b, U+8015, U+809b, U+817a, U+830e, U+837b, U+85ab, U+8a23,
+    U+8a93, U+8b00, U+8b19, U+8b21, U+8cbf, U+8fb0, U+901d, U+91b8, U+9320, U+932c, U+9688, U+96f6,
+    U+9df2, U+ff6a;
+}
+@font-face {
+  font-family: "DotGothic16";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dotgothic16-jp-971c.woff2") format("woff2");
+  unicode-range:
+    U+2020, U+3003, U+3231, U+4e9b, U+4f3d, U+4f47, U+51b6, U+51dc, U+53e1, U+5bc5, U+602f, U+60bc,
+    U+61c9, U+633d, U+637b, U+6492, U+65fa, U+660f, U+66f0, U+6703, U+681e, U+6876, U+6893, U+6912,
+    U+698e, U+6c7d, U+714c, U+7169, U+71d5, U+725f, U+72d7, U+745b, U+74dc, U+75e2, U+7891, U+7897,
+    U+7dcb, U+810a, U+8218, U+8339, U+840e, U+852d, U+8823, U+8a0a, U+9089, U+919c, U+971c, U+9ad9,
+    U+ff4a, U+ff5a;
+}

@@ -4,11 +4,14 @@ import {
   apiKeyAtom,
   bridgePortAtom,
   chainAtom,
+  crtIntensityAtom,
   demoModeAtom,
   modeAtom,
   rpcUrlAtom,
   rugcheckKeyAtom,
+  sfxEnabledAtom,
   type ConnectionMode,
+  type CrtIntensity,
 } from "../../state/atoms";
 import type { Chain } from "../../lib/schemas";
 import { checkBridge, type HealthResult } from "../../lib/ai/bridge";
@@ -46,6 +49,8 @@ export function Config() {
   const [rpcUrl, setRpcUrl] = useAtom(rpcUrlAtom);
   const [rugcheckKey, setRugcheckKey] = useAtom(rugcheckKeyAtom);
   const [demoMode, setDemoMode] = useAtom(demoModeAtom);
+  const [crtIntensity, setCrtIntensity] = useAtom(crtIntensityAtom);
+  const [sfxEnabled, setSfxEnabled] = useAtom(sfxEnabledAtom);
   const [bridgePort, setBridgePort] = useAtom(bridgePortAtom);
   const [bridgeHealth, setBridgeHealth] = useState<HealthResult | null>(null);
   const [bridgeReachable, setBridgeReachable] = useState(false);
@@ -349,6 +354,61 @@ export function Config() {
           </a>{" "}
           dashboard — an RPC-product key is rejected. ignored on Robinhood Chain — RugCheck covers
           Solana only.
+        </p>
+      </div>
+      <div className="mb-4">
+        <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          CRT INTENSITY
+        </div>
+        <div className="flex gap-2">
+          {(
+            [
+              ["low", "LOW (DEFAULT)"],
+              ["med", "MED"],
+            ] as [CrtIntensity, string][]
+          ).map(([level, label]) => (
+            <button
+              key={level}
+              onClick={() => setCrtIntensity(level)}
+              className="px-3 py-1 text-xs"
+              style={{
+                color: crtIntensity === level ? "var(--flurry-bg)" : "var(--flurry-green)",
+                background: crtIntensity === level ? "var(--flurry-green)" : "transparent",
+                border: "1px solid var(--flurry-dim)",
+                cursor: "pointer",
+                minHeight: 44,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          deeper vignette and phosphor bloom. LOW is exactly the current look, so nothing changes
+          unless you opt in. session-scoped like everything else.
+        </p>
+      </div>
+      <div className="mb-4">
+        <div className="mb-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          SFX
+        </div>
+        <button
+          onClick={() => setSfxEnabled((on) => !on)}
+          className="px-3 py-1 text-xs"
+          style={{
+            color: sfxEnabled ? "var(--flurry-bg)" : "var(--flurry-green)",
+            background: sfxEnabled ? "var(--flurry-green)" : "transparent",
+            border: "1px solid var(--flurry-dim)",
+            cursor: "pointer",
+            minHeight: 44,
+          }}
+        >
+          {sfxEnabled ? "SFX: ON" : "SFX: OFF"}
+        </button>
+        <p className="mt-1 text-xs" style={{ color: "var(--flurry-mid)" }}>
+          one quiet keyclick when a CRITICAL launch enters the feed. synthesized, no audio files,
+          never on load, never for anything else. off by default; stays off if your OS asks for
+          reduced motion.
         </p>
       </div>
     </div>
