@@ -5,19 +5,21 @@ import { buildCrossCheck, type RugcheckCrossCheck } from "./crossCheck";
 const BASE = "https://api.rugcheck.xyz";
 
 /**
- * Auth header for the user's FluxRPC/RugCheck key. The API's CORS preflight
- * allows both `Authorization` and `X-API-KEY` (verified live 2026-08-25);
- * which one a FluxRPC key belongs in is confirmed by the keyed test in
- * DECODING notes — see src/lib/rugcheck/DECODING.md.
+ * Per FluxRPC's RugCheck getting-started doc (verified live 2026-08-25):
+ * keys go in the `X-API-KEY` header (their "preferred" option; `?key=` also
+ * exists but a key in a URL leaks into logs, so it's not used here). The key
+ * must be created under the *RugCheck section* of the FluxRPC dashboard — an
+ * RPC-product key gets `{"error":"invalid api key"}`. See DECODING.md.
  */
-const AUTH_HEADER = "authorization";
+const AUTH_HEADER = "X-API-KEY";
 
 /**
- * Conservative shared limiter: RugCheck/FluxRPC don't publish per-plan rps,
- * so 2 rps it is — cross-checks only fire on user row-expansion anyway, and
- * results are cached per mint for the session by the caller.
+ * FluxRPC documents 1 rps for anonymous access and no explicit number for
+ * keyed plans, so 1 rps is the honest floor — cross-checks only fire on user
+ * row-expansion anyway, and results are cached per mint for the session by
+ * the caller.
  */
-const rugcheckBucket = new TokenBucket(2);
+const rugcheckBucket = new TokenBucket(1);
 
 export type RugcheckErrorKind = "quota" | "auth" | "http" | "network" | "parse";
 
@@ -35,8 +37,14 @@ async function get(path: string, key: string): Promise<unknown> {
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, { headers: { [AUTH_HEADER]: key } });
-  } catch (e) {
-    throw new RugcheckError("network", e instanceof Error ? e.message : "network error");
+  } catch {
+    // RugCheck's 401 responses carry no CORS headers (verified 2026-08-25), so
+    // in a browser a rejected key lands HERE as an opaque fetch failure — not
+    // in the 401 branch below. Say so instead of guessing "network down".
+    throw new RugcheckError(
+      "network",
+      "request failed — either a network problem, or the key was rejected (a rejected key surfaces as a CORS failure in browsers)",
+    );
   }
   if (res.status === 429)
     throw new RugcheckError("quota", "rate limit / quota exhausted (HTTP 429)");

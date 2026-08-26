@@ -45,7 +45,7 @@ export function RugcheckPanel({
         ? e.kind === "quota"
           ? "quota / rate limit exhausted on your RugCheck plan — cross-check unavailable right now. Flurry's own verdicts are unaffected."
           : e.kind === "auth"
-            ? "RugCheck key rejected — check the key in [F3] CONFIG."
+            ? "RugCheck key rejected — the key must be created under the RugCheck section at fluxrpc.com (an RPC key won't work). Check [F3] CONFIG."
             : `cross-check failed: ${e.message}`
         : "cross-check failed";
     return (

@@ -311,17 +311,19 @@ export function Config() {
           <span style={{ color: "var(--flurry-cyan)" }}>CROSS-CHECK</span> panel (rugged status, LP
           locks, insider networks, their risk score) attributed to rugcheck.xyz — a second opinion
           that never changes Flurry&apos;s own RISK verdict. without a key, nothing changes. sent
-          directly from your browser to api.rugcheck.xyz, held in memory for this session only. get
-          a key at{" "}
+          directly from your browser to api.rugcheck.xyz, held in memory for this session only.
+          create the key under the{" "}
+          <span style={{ color: "var(--flurry-green)" }}>RugCheck section</span> of your{" "}
           <a
-            href="https://fluxrpc.com/docs/rugcheck"
+            href="https://fluxrpc.com/docs/rugcheck/getting-started"
             target="_blank"
             rel="noopener noreferrer"
             style={linkStyle}
           >
             fluxrpc.com
-          </a>
-          . ignored on Robinhood Chain — RugCheck covers Solana only.
+          </a>{" "}
+          dashboard — an RPC-product key is rejected. ignored on Robinhood Chain — RugCheck covers
+          Solana only.
         </p>
       </div>
     </div>

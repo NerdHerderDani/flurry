@@ -24,20 +24,28 @@
 - Conclusion: **direct browser calls are permitted from our origins** — no
   desktop-bridge routing needed for RugCheck reads.
 
-## Auth header
+## Auth — VERIFIED 2026-08-25 (keyed test, operator key)
 
-- Swagger `securityDefinitions`: apiKey in header `Authorization`.
-- The CORS preflight also allows `X-API-KEY`.
-- The keyed verification (operator key, tested against the auth-required
-  `/lockers` endpoint) settles which header a FluxRPC-issued key belongs in;
-  the result is recorded here and encoded as `AUTH_HEADER` in `client.ts`.
+- FluxRPC's RugCheck getting-started doc: keys go in the `X-API-KEY` header
+  ("preferred") or `?key=` query param. We use the header only — a key in a
+  URL leaks into server logs and browser history, violating our own hygiene.
+- Keys must be created under the **RugCheck section** of the FluxRPC
+  dashboard. Live test with the operator's general RPC-product key against
+  `api.rugcheck.xyz`: HTTP 401 `{"error":"invalid api key"}` on every header
+  variant — RPC keys and RugCheck keys are separate credentials.
+- **401 responses carry no CORS headers** (verified live): in a browser a
+  rejected key surfaces as an opaque fetch failure, not a readable 401. The
+  client's error copy accounts for this.
+- Swagger's `securityDefinitions` (header `Authorization`, "JWT token")
+  describes RugCheck's own wallet-login JWT flow, not FluxRPC keys.
 
-## Rate limits
+## Rate limits — DOCUMENTED 2026-08-25
 
-FluxRPC/RugCheck publish no per-plan rps numbers. Shipped behavior: a
-dedicated 2 rps token bucket, fetch only on user row-expansion, per-mint
-session cache, no retry on 429/auth errors, and an honest "quota exhausted"
-panel state instead of stale or guessed data.
+FluxRPC documents **1 rps for anonymous access**; keyed-plan rps is not
+published. Shipped behavior: a dedicated 1 rps token bucket (the honest
+floor), fetch only on user row-expansion, per-mint session cache, no retry on
+429/auth errors, and an honest "quota exhausted" panel state instead of stale
+or guessed data.
 
 ## Precision hazard
 
