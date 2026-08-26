@@ -1,4 +1,4 @@
-import type { RiskTier } from "./risk";
+import type { RiskTier } from "./risk.js";
 
 /**
  * The local verdict: Flurry's already-computed signals rendered as plain

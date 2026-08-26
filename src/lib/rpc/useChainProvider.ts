@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import { createDemoProvider } from "./demo";
+import { createDemoProvider } from "@flurry/forensics";
 import { createPumpFunProvider } from "./pumpfun";
 import { createRobinhoodChainProvider } from "./robinhood";
 import { PUBLIC_RPC } from "./publicRpc";

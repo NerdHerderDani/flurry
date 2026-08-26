@@ -5,6 +5,25 @@ on:
   pull_request:
 
 jobs:
+  # The package is gated independently of the app: it must build, test, and
+  # stay publishable on its own, without the app's toolchain (no vite, no
+  # React, no DOM). If this job needs anything app-shaped, the extraction
+  # leaked.
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace @flurry/forensics
+      - run: npx vitest run packages/forensics
+      # Keeps the package publishable at all times. The real publish is a
+      # manual operator action after review — never automated here.
+      - run: npm publish --dry-run --workspace @flurry/forensics
+
   verify:
     runs-on: ubuntu-latest
     steps:

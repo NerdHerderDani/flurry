@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { explainRisk, type ExplainInput } from "./explain";
-import { scoreRisk } from "./risk";
+import { explainRisk, type ExplainInput } from "./explain.js";
+import { scoreRisk } from "./risk.js";
 
 const base: ExplainInput = {
   bundled: false,
