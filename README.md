@@ -26,7 +26,27 @@ own Anthropic key.
 - **Graduation tab.** Queue tickers, watch curve completion, catch tokens at CLOSE (≥90%)
   before they graduate.
 
-## Run it
+## Getting started
+
+Open the app. That is the whole setup.
+
+- **Robinhood Chain:** the live feed and forensics run immediately on
+  Robinhood's public RPC in `SLOW MODE` — no key, no signup, a conservative
+  request budget, `RPC: PUBLIC (SLOW)` in the header.
+- **Solana:** no public endpoint accepts browser traffic (every free one
+  tested blocks it — verified with real calls, see
+  [`src/lib/rpc/DECODING.md`](src/lib/rpc/DECODING.md)), so Solana shows the
+  demo feed until you paste one free key from
+  [helius.dev](https://www.helius.dev) in `[F3] CONFIG`.
+- **Full speed** on either chain: paste a free RPC key — that's the upgrade,
+  not the entry fee. Keys live in memory for the session only, as always.
+
+Every expanded row opens with a **plain-English verdict** (instant, free, no
+key), the raw forensics underneath, tap-to-explain glossary terms on the
+jargon, and a `SHARE SCAN` button that copies a `?chain=…&mint=…` deep link.
+The AI dossier is the deeper read on top, not the entry point.
+
+## Run it locally
 
 ```sh
 npm install

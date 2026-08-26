@@ -47,13 +47,17 @@ function describeQueuedMintLookupFailure(e: unknown): string {
 export interface RobinhoodChainProviderCallbacks {
   onStatus?: (status: FeedStatus) => void;
   onThrottle?: (throttled: boolean) => void;
+  /** SLOW MODE budget override (public endpoints); defaults to full speed. */
+  rps?: number;
+  /** Passed through to the feed — 1 skips WS churn on endpoints known to lack it. */
+  maxWsFailures?: number;
 }
 
 export function createRobinhoodChainProvider(
   rpcUrl: string,
   callbacks: RobinhoodChainProviderCallbacks = {},
 ): ChainProvider {
-  const limiter = new TokenBucket(RATE_LIMIT_RPS);
+  const limiter = new TokenBucket(callbacks.rps ?? RATE_LIMIT_RPS);
   const transport = new RpcTransport(rpcUrl, limiter, callbacks.onThrottle);
   const priceCache = new EthUsdPriceCache();
 
@@ -72,6 +76,7 @@ export function createRobinhoodChainProvider(
 
   const feed = new EvmLaunchFeed(rpcUrl, transport, {
     onStatus: (s) => callbacks.onStatus?.(s),
+    ...(callbacks.maxWsFailures !== undefined && { maxWsFailures: callbacks.maxWsFailures }),
     onLog: (log) => {
       void handleFactoryLog(log);
     },

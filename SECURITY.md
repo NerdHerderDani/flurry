@@ -17,6 +17,7 @@ Flurry is a fully static, client-side application. There is no backend.
 ## Data flow
 
 user browser ── RPC reads ──> user-supplied Solana RPC, or user-supplied Robinhood Chain RPC
+user browser ── RPC reads (SLOW MODE, no key pasted) ──> the chain's public RPC endpoint — same request shapes, sent to the public endpoint operator instead; no user keys involved by definition
 user browser ── dossier calls (BYOK) ──> api.anthropic.com (user's key)
 user browser ── dossier calls (DESKTOP BRIDGE) ──> http://localhost:PORT (same machine) ──> claude CLI (subscription) or api.anthropic.com (ANTHROPIC_API_KEY from the bridge's own shell env)
 user browser ── token cross-check (optional BYOK) ──> api.rugcheck.xyz (user's RugCheck/FluxRPC key; only fires on row expansion with a key set)

@@ -10,6 +10,9 @@ import { runDossier } from "../../lib/ai/anthropic";
 import { BridgeNoBackendError, runDossierViaBridge } from "../../lib/ai/bridge";
 import { toEvidenceSection, type RugcheckCrossCheck } from "../../lib/rugcheck/crossCheck";
 import { RugcheckPanel } from "./RugcheckPanel";
+import { LocalVerdictBlock } from "./LocalVerdictBlock";
+import { Term } from "../../components/terminal/Term";
+import { buildDeepLink } from "../../lib/deepLink";
 import {
   apiKeyAtom,
   bridgePortAtom,
@@ -39,7 +42,15 @@ interface Row extends Launch {
 
 export function Scanner() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [sharedMint, setSharedMint] = useState<string | null>(null);
   const [paused, setPaused] = useAtom(feedPausedAtom);
+
+  const shareScan = (mint: string, chain: Launch["chain"]) => {
+    void navigator.clipboard.writeText(buildDeepLink(chain, mint)).then(() => {
+      setSharedMint(mint);
+      setTimeout(() => setSharedMint((m) => (m === mint ? null : m)), 1800);
+    });
+  };
   const apiKey = useAtomValue(apiKeyAtom);
   const mode = useAtomValue(modeAtom);
   const bridgePort = useAtomValue(bridgePortAtom);
@@ -217,9 +228,8 @@ export function Scanner() {
       </div>
       <div style={{ border: "1px solid var(--flurry-dim)" }}>
         <div
-          className="grid px-2 py-1 text-xs"
+          className="grid grid-cols-[70px_90px_1fr_90px_60px_80px] px-2 py-1 text-xs max-sm:hidden"
           style={{
-            gridTemplateColumns: "70px 90px 1fr 90px 60px 80px",
             color: "var(--flurry-mid)",
             borderBottom: "1px solid var(--flurry-dim)",
           }}
@@ -227,8 +237,12 @@ export function Scanner() {
           <span>AGE</span>
           <span>PLATFORM</span>
           <span>TOKEN</span>
-          <span>MCAP</span>
-          <span>LINKS</span>
+          <span>
+            <Term term="mcap">MCAP</Term>
+          </span>
+          <span>
+            <Term term="linked wallets">LINKS</Term>
+          </span>
           <span>RISK</span>
         </div>
         {rows.map((r) => {
@@ -238,10 +252,9 @@ export function Scanner() {
             <div key={r.mint} style={{ borderBottom: "1px solid var(--flurry-dim)" }}>
               <div
                 onClick={() => toggle(r)}
-                className="grid cursor-pointer px-2 py-1 text-sm hover:bg-white/5"
-                style={{ gridTemplateColumns: "70px 90px 1fr 90px 60px 80px" }}
+                className="grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-x-2 px-2 py-3 text-sm hover:bg-white/5 sm:grid-cols-[70px_90px_1fr_90px_60px_80px] sm:py-1"
               >
-                <span style={{ color: "var(--flurry-mid)" }}>
+                <span className="max-sm:hidden" style={{ color: "var(--flurry-mid)" }}>
                   {ageSec < 60 ? `${ageSec}s` : `${Math.floor(ageSec / 60)}m`}
                 </span>
                 <span
@@ -268,8 +281,11 @@ export function Scanner() {
                 >
                   ${r.ticker} <span style={{ color: "var(--flurry-mid)" }}>· {r.name}</span>
                 </span>
-                <span>${Math.round(r.mcapUsd / 1000)}k</span>
-                <span style={{ color: linked > 5 ? "var(--flurry-amber)" : "var(--flurry-mid)" }}>
+                <span className="max-sm:hidden">${Math.round(r.mcapUsd / 1000)}k</span>
+                <span
+                  className="max-sm:hidden"
+                  style={{ color: linked > 5 ? "var(--flurry-amber)" : "var(--flurry-mid)" }}
+                >
                   {linked}
                 </span>
                 {r.scanState === "scanned" ? (
@@ -289,13 +305,47 @@ export function Scanner() {
                   className="px-3 pb-3 pt-1 text-xs"
                   style={{ background: "var(--flurry-panel)" }}
                 >
+                  <LocalVerdictBlock
+                    mint={r.mint}
+                    chain={r.chain}
+                    expanded={r.open}
+                    scanned={r.scanState === "scanned"}
+                    input={{
+                      bundled: bundle.bundled,
+                      bundleWallets: bundle.deploySlotWallets,
+                      firstBlockSupplyPct: bundle.deploySlotSupplyPct,
+                      linkedWallets: linked,
+                      ...(clusters[0] && { clusterSize: clusters[0].wallets.length }),
+                      deployerPriorLaunches: r.deployerPriorLaunches,
+                      deployerPriorRugs: r.deployerPriorRugs,
+                      rugHistoryVerified: r.rugHistoryVerified,
+                      devHoldsPct: r.devHoldsPct,
+                      tier,
+                    }}
+                  />
                   <pre className="whitespace-pre-wrap">
-                    {`deployer      ${short(r.deployer)}   (${r.deployerPriorLaunches} prior launches, ${r.rugHistoryVerified ? `${r.deployerPriorRugs} rugs` : "rug history: unverified"})
-mint          ${short(r.mint)}
-bundle check  ${r.scanState !== "scanned" ? "loading..." : bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}
-first block   ${bundle.deploySlotSupplyPct}% of supply acquired${bundle.deploySlotSupplyPct > 30 ? "  ⚠ concentration" : ""}
-wallet links  ${linked} wallets share funding lineage${clusters[0] ? `\nfunder        ${short(clusters[0].funder)} (${clusters[0].wallets.length}-wallet cluster)` : ""}
-dev holds     ${r.devHoldsPct}% of supply`}
+                    {`deployer      ${short(r.deployer)}   (${r.deployerPriorLaunches} prior launches, `}
+                    {r.rugHistoryVerified ? (
+                      `${r.deployerPriorRugs} rugs`
+                    ) : (
+                      <>
+                        rug history: <Term term="unverified">unverified</Term>
+                      </>
+                    )}
+                    {`)\nmint          ${short(r.mint)}\n`}
+                    <Term term="bundled">bundle check</Term>
+                    {`  ${r.scanState !== "scanned" ? "loading..." : bundle.bundled ? `BUNDLED — ${bundle.deploySlotWallets} wallets bought in deploy slot` : "clean deploy slot"}\n`}
+                    <Term term="deploy slot">first block</Term>
+                    {`   ${bundle.deploySlotSupplyPct}% of supply acquired${bundle.deploySlotSupplyPct > 30 ? "  ⚠ concentration" : ""}\n`}
+                    <Term term="linked wallets">wallet links</Term>
+                    {`  ${linked} wallets share `}
+                    <Term term="funding lineage">funding lineage</Term>
+                    {clusters[0]
+                      ? `\nfunder        ${short(clusters[0].funder)} (${clusters[0].wallets.length}-wallet cluster)`
+                      : ""}
+                    {`\n`}
+                    <Term term="dev holds">dev holds</Term>
+                    {`     ${r.devHoldsPct}% of supply`}
                   </pre>
                   {/* Strict enrichment: without a RugCheck key this renders nothing at all. */}
                   {r.chain === "solana" && rugcheckKey.trim().length > 0 && (
@@ -304,10 +354,25 @@ dev holds     ${r.devHoldsPct}% of supply`}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      shareScan(r.mint, r.chain);
+                    }}
+                    className="mr-2 mt-2 min-h-11 px-3 py-1 text-xs sm:min-h-0"
+                    style={{
+                      color: sharedMint === r.mint ? "var(--flurry-bg)" : "var(--flurry-green)",
+                      background: sharedMint === r.mint ? "var(--flurry-green)" : "transparent",
+                      border: "1px solid var(--flurry-dim)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {sharedMint === r.mint ? "LINK COPIED ✓" : "SHARE SCAN"}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       void onDossier(r);
                     }}
                     disabled={r.dossierLoading}
-                    className="mt-2 px-3 py-1 text-xs"
+                    className="mt-2 min-h-11 px-3 py-1 text-xs sm:min-h-0"
                     style={{
                       color: "var(--flurry-bg)",
                       background: "var(--flurry-cyan)",
@@ -319,8 +384,8 @@ dev holds     ${r.devHoldsPct}% of supply`}
                     {r.dossierLoading
                       ? "ANALYZING..."
                       : r.dossier
-                        ? "RERUN AI DOSSIER"
-                        : "▸ RUN AI DOSSIER"}
+                        ? "RERUN DEEPER READ (AI)"
+                        : "▸ DEEPER READ (AI)"}
                   </button>
                   {r.dossierError && (
                     <div className="mt-2" style={{ color: "var(--flurry-red)" }}>

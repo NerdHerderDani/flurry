@@ -123,3 +123,37 @@ things the brief didn't fully resolve:
   older SPL-Token + Metaplex-metadata pump.fun token (if any such curve is
   still active) will fail to resolve with an explicit error rather than
   silently showing zeros.
+
+## Public endpoints (SLOW MODE) — verified 2026-08-26, from a real browser
+
+The zero-setup brief required real verification of public endpoints, and the
+browser context turned out to be the test that matters:
+
+**Solana — no browser-usable public endpoint exists.** `api.mainnet-beta.solana.com`
+answers curl/node happily (getSignaturesForAddress limit=1000 in ~0.5s, 15/15
+rapid calls OK, `logsSubscribe` over WS confirmed with 2,140 notifications in
+12s) — and then returns **HTTP 403 to any browser-origin request**, WS included
+(observed live in the running app: 4 WS failures → poll fallback → 403 per
+tick). Every other free endpoint tested from a real browser context also
+fails: `solana-rpc.publicnode.com` and `mainnet.solana.rpcpool.com` (CORS
+fetch failure), `solana.drpc.org` ("chain is not available on free plan"),
+`endpoints.omniatech.io` (blocked), `solana.api.onfinality.io` (429,
+key-gated), `rpc.ankr.com/solana` (403, key-gated). Consequence: Solana ships
+demo-until-key, stated honestly in Config; SLOW MODE is RHC-only until a
+browser-open public Solana endpoint exists.
+
+**Robinhood Chain — `https://rpc.mainnet.chain.robinhood.com` works from the
+browser.** eth_blockNumber 200 from a browser fetch, 10/10 rapid calls OK,
+eth_getLogs over a 2,000-block window OK, **no WebSocket** (handshake closes,
+code 1006 — matching Robinhood's own docs), so the provider is configured
+with `maxWsFailures: 1` to skip straight to polling. Verified end-to-end in
+the running app: `FEED: LIVE · RPC: PUBLIC (SLOW)` with zero configuration.
+SLOW MODE budget: 3 rps (the endpoint's ceiling was not probed to exhaustion
+— it is shared infrastructure; the budget is deliberately conservative).
+
+**CRT effects on mobile:** the only animations are two compositor-only
+opacity keyframes (4s flicker, 1.1s cursor blink), both disabled under
+`prefers-reduced-motion`; scanlines and vignette are static fixed gradients
+painted once. No per-frame JS. An FPS sample couldn't be captured in the
+audit harness (occluded renderer throttles rAF), so this paragraph argues
+from the implementation instead of inventing a number.
